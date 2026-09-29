@@ -1,8 +1,0 @@
-# Only the training split is subsampled; val/test splits stay fixed
-# (see build_loaders in run_ablation.py) so results remain comparable.
-cases:
-  - overrides: {train.train_fraction: 1.0}
-  - overrides: {train.train_fraction: 0.75}
-  - overrides: {train.train_fraction: 0.5}
-  - overrides: {train.train_fraction: 0.25}
-  - overrides: {train.train_fraction: 0.1}
