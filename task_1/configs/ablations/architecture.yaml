@@ -1,24 +1,29 @@
-# Architecture comparison: 5 strongest decoder heads, each paired with
-# one of 4 allowed encoders (mit_b2, resnet50, densenet121, mit_b1) --
-# deliberately NOT re-screening backbones from scratch (the source paper
-# already benchmarked 12 of them across 29/37 configs). Weights are
-# always ImageNet; no SSL/SWSL variation in this study.
+# Architecture comparison: full cross of 5 decoders x 4 encoders = 20
+# combinations, minus 2 that SMP rejects outright (UnetPlusPlus does not
+# support any MiT encoder -- the source paper notes this same
+# incompatibility -- so unetplusplus+mit_b2 and unetplusplus+mit_b1 are
+# excluded). All 18 remaining pairs verified with check_compatibility.py
+# (forward pass, no training) before being listed here.
 #
-# Pairing notes:
-#   - unet + mit_b2: the paper's own overall-best combination.
-#   - unetplusplus + densenet121: forced -- SMP does not support UNet++
-#     with any MiT encoder at all (the paper notes this same
-#     incompatibility). Not an arbitrary substitute either:
-#     U-Net+++DenseNet-121 was the paper's 2nd-best individual region
-#     result (0.8998 mIoU, ~tied with their overall best).
-#   - fpn + resnet50: solid CNN baseline pairing.
-#   - manet + mit_b1: MA-Net was the paper's overall-best tissue-task
-#     decoder, paired here with the cheaper MiT variant.
-#   - segformer + mit_b2: the canonical SegFormer pairing (transformer
-#     encoder + its native all-MLP decoder).
+# Decoders: unet, unetplusplus, fpn, manet, segformer
+# Encoders: mit_b2, resnet50, densenet121, mit_b1
+# Weights: always ImageNet (no SSL/SWSL in this study).
 cases:
   - overrides: {model.decoder: unet, model.encoder: mit_b2}
+  - overrides: {model.decoder: unet, model.encoder: resnet50}
+  - overrides: {model.decoder: unet, model.encoder: densenet121}
+  - overrides: {model.decoder: unet, model.encoder: mit_b1}
+  - overrides: {model.decoder: unetplusplus, model.encoder: resnet50}
   - overrides: {model.decoder: unetplusplus, model.encoder: densenet121}
+  - overrides: {model.decoder: fpn, model.encoder: mit_b2}
   - overrides: {model.decoder: fpn, model.encoder: resnet50}
+  - overrides: {model.decoder: fpn, model.encoder: densenet121}
+  - overrides: {model.decoder: fpn, model.encoder: mit_b1}
+  - overrides: {model.decoder: manet, model.encoder: mit_b2}
+  - overrides: {model.decoder: manet, model.encoder: resnet50}
+  - overrides: {model.decoder: manet, model.encoder: densenet121}
   - overrides: {model.decoder: manet, model.encoder: mit_b1}
   - overrides: {model.decoder: segformer, model.encoder: mit_b2}
+  - overrides: {model.decoder: segformer, model.encoder: resnet50}
+  - overrides: {model.decoder: segformer, model.encoder: densenet121}
+  - overrides: {model.decoder: segformer, model.encoder: mit_b1}
