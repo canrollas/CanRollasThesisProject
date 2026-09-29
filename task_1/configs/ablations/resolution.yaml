@@ -1,0 +1,10 @@
+# Source images come from multiple capture devices with wildly different
+# native sizes (224x224 up to ~1600x1600; the plurality are 512x512), so
+# there is no single "native" cap. Values are divisible by 32 for decoder
+# stride compatibility and span from the BASE default up to the most
+# common native size.
+cases:
+  - overrides: {train.resolution: 224}
+  - overrides: {train.resolution: 320}
+  - overrides: {train.resolution: 384}
+  - overrides: {train.resolution: 512}

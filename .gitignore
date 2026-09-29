@@ -1,0 +1,17 @@
+# Clinical wound images: never tracked in git, uploaded to Google Drive
+# separately for Colab access. Only datasets/README.md is versioned.
+datasets/*
+!datasets/README.md
+
+# Local ablation outputs (Colab-generated, not source-controlled)
+task_1/checkpoints/
+task_1/results/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store

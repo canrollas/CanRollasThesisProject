@@ -1,0 +1,15 @@
+# Backbone ablation: decoder=unet, weights=imagenet (BASE) held fixed,
+# only the encoder backbone varies.
+cases:
+  - overrides: {model.encoder: resnet18}
+  - overrides: {model.encoder: resnet34}
+  - overrides: {model.encoder: resnet50}
+  - overrides: {model.encoder: efficientnet-b0}
+  - overrides: {model.encoder: efficientnet-b3}
+  - overrides: {model.encoder: efficientnet-b4}
+  - overrides: {model.encoder: mobilenet_v2}
+  - overrides: {model.encoder: densenet121}
+  - overrides: {model.encoder: resnext50_32x4d}
+  - overrides: {model.encoder: mit_b1}
+  - overrides: {model.encoder: mit_b2}
+  - overrides: {model.encoder: mit_b3}

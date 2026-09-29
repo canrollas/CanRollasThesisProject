@@ -1,0 +1,13 @@
+# Decoder ablation: encoder=resnet34, weights=imagenet (BASE) held fixed,
+# only the segmentation decoder/architecture varies. resnet34 is used
+# because it is compatible with all nine SMP decoders tested here.
+cases:
+  - overrides: {model.decoder: unet}
+  - overrides: {model.decoder: unetplusplus}
+  - overrides: {model.decoder: fpn}
+  - overrides: {model.decoder: deeplabv3plus}
+  - overrides: {model.decoder: manet}
+  - overrides: {model.decoder: linknet}
+  - overrides: {model.decoder: pan}
+  - overrides: {model.decoder: pspnet}
+  - overrides: {model.decoder: deeplabv3}

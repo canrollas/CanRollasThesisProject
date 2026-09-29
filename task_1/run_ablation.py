@@ -1,0 +1,200 @@
+import argparse
+import csv
+import json
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+from src.augmentations import build_transform
+from src.dataset import WoundRegionDataset, list_filenames, make_kfold_splits, split_holdout, subsample
+from src.engine import run_training
+from src.losses import build_loss
+from src.model import build_model
+from src.utils import apply_overrides, load_color_mapping, load_yaml, set_seed
+
+STUDIES = ["backbone", "decoder", "weights", "loss", "resolution", "augmentation", "data_efficiency"]
+
+
+def build_loaders(config, train_files, val_files, test_files):
+    classes = config["data"]["classes"]
+    color_mapping = load_color_mapping(config["data"]["color_mapping_path"], classes)
+    resolution = config["train"]["resolution"]
+
+    train_tf = build_transform(config["train"]["augmentation"], resolution, is_train=True)
+    eval_tf = build_transform(config["train"]["augmentation"], resolution, is_train=False)
+
+    common = dict(
+        images_dir=config["data"]["images_dir"],
+        masks_dir=config["data"]["masks_dir"],
+        classes=classes,
+        color_mapping=color_mapping,
+    )
+    train_ds = WoundRegionDataset(filenames=train_files, transform=train_tf, **common)
+    val_ds = WoundRegionDataset(filenames=val_files, transform=eval_tf, **common)
+    test_ds = WoundRegionDataset(filenames=test_files, transform=eval_tf, **common)
+
+    bs = config["train"]["batch_size"]
+    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=2, drop_last=True)
+    val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=2)
+    test_loader = DataLoader(test_ds, batch_size=bs, shuffle=False, num_workers=2)
+    return train_loader, val_loader, test_loader, len(classes)
+
+
+def run_one_fold(config, train_files, val_files, test_files, device):
+    set_seed(config["train"]["seed"])
+    train_loader, val_loader, test_loader, num_classes = build_loaders(config, train_files, val_files, test_files)
+
+    model = build_model(config["model"]["decoder"], config["model"]["encoder"], config["model"]["weights"], num_classes)
+    model.to(device)
+
+    loss_fn = build_loss(config["train"]["loss"], config["data"]["ignore_index"])
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config["train"]["lr"], weight_decay=config["train"]["weight_decay"]
+    )
+    epochs = config["train"]["epochs"]
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=epochs, eta_min=config["train"]["lr"] * config["train"]["lr_min_factor"]
+    )
+
+    start = time.time()
+    model, metrics = run_training(
+        model, train_loader, val_loader, test_loader, optimizer, scheduler, loss_fn,
+        epochs, device, num_classes, config["data"]["ignore_index"],
+    )
+    metrics["train_time_sec"] = time.time() - start
+    metrics["num_params"] = sum(p.numel() for p in model.parameters())
+    return model, metrics
+
+
+def mean_std(values):
+    arr = np.array(values, dtype=np.float64)
+    return float(arr.mean()), float(arr.std())
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Wound region segmentation ablation runner (k-fold CV)")
+    parser.add_argument("--study", required=True, choices=STUDIES)
+    parser.add_argument("--base-config", default="configs/base.yaml")
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = parser.parse_args()
+
+    base_config = load_yaml(args.base_config)
+    study_config = load_yaml(f"configs/ablations/{args.study}.yaml")
+
+    n_folds = base_config["data"]["n_folds"]
+    assert n_folds >= 3, "n_folds must be at least 3 (paper protocol: 3, ideally 5)"
+
+    all_filenames = list_filenames(base_config["data"]["images_dir"])
+    dev_pool, holdout_files = split_holdout(
+        all_filenames, base_config["data"]["holdout_fraction"], base_config["data"]["holdout_seed"]
+    )
+    print(f"Holdout: {len(holdout_files)} files set aside (never used by ablation), "
+          f"dev pool: {len(dev_pool)} files")
+
+    holdout_record = Path(base_config["output"]["results_csv"]).parent / "holdout_files.json"
+    holdout_record.parent.mkdir(parents=True, exist_ok=True)
+    if not holdout_record.exists():
+        with open(holdout_record, "w") as f:
+            json.dump({
+                "holdout_fraction": base_config["data"]["holdout_fraction"],
+                "holdout_seed": base_config["data"]["holdout_seed"],
+                "files": holdout_files,
+            }, f, indent=2)
+
+    folds = make_kfold_splits(
+        dev_pool, n_folds, base_config["data"]["split_seed"], base_config["data"]["val_fraction_of_remaining"]
+    )
+
+    fold_csv = Path(base_config["output"]["results_csv"]).with_name(f"{args.study}_folds.csv")
+    summary_csv = Path(base_config["output"]["results_csv"]).with_name(f"{args.study}_summary.csv")
+    fold_csv.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir = Path(base_config["output"]["checkpoint_dir"]) / args.study
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    fold_rows = []
+    summary_rows = []
+
+    for i, case in enumerate(study_config["cases"]):
+        overrides = case["overrides"]
+        config = apply_overrides(base_config, overrides)
+        print(f"[{args.study}] case {i + 1}/{len(study_config['cases'])}: {overrides}")
+
+        case_test_miou, case_test_mdice, case_val_miou, case_train_time = [], [], [], []
+        num_params = None
+
+        for fold_idx, (train_files, val_files, test_files) in enumerate(folds):
+            train_files_fold = subsample(train_files, config["train"]["train_fraction"], config["train"]["seed"])
+            print(f"  fold {fold_idx + 1}/{n_folds} "
+                  f"(train={len(train_files_fold)}, val={len(val_files)}, test={len(test_files)})")
+
+            model, metrics = run_one_fold(config, train_files_fold, val_files, test_files, args.device)
+            num_params = metrics["num_params"]
+
+            ckpt_path = ""
+            if base_config["output"]["save_checkpoints"]:
+                ckpt_path = checkpoint_dir / f"case_{i:02d}_fold{fold_idx}.pt"
+                torch.save(model.state_dict(), ckpt_path)
+                fold_config = dict(config)
+                fold_config["_fold_index"] = fold_idx
+                with open(checkpoint_dir / f"case_{i:02d}_fold{fold_idx}_config.json", "w") as f:
+                    json.dump(fold_config, f, indent=2)
+
+            fold_row = {
+                "study": args.study,
+                "case_index": i,
+                "fold_index": fold_idx,
+                "overrides": json.dumps(overrides),
+                "test_miou": metrics["test"]["miou"],
+                "test_mdice": metrics["test"]["mdice"],
+                "test_iou_per_class": json.dumps(metrics["test"]["iou_per_class"]),
+                "best_val_miou": metrics["best_val_miou"],
+                "train_time_sec": metrics["train_time_sec"],
+                "num_params": metrics["num_params"],
+                "checkpoint": str(ckpt_path),
+            }
+            fold_rows.append(fold_row)
+            case_test_miou.append(metrics["test"]["miou"])
+            case_test_mdice.append(metrics["test"]["mdice"])
+            case_val_miou.append(metrics["best_val_miou"])
+            case_train_time.append(metrics["train_time_sec"])
+
+            with open(fold_csv, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=list(fold_row.keys()))
+                writer.writeheader()
+                writer.writerows(fold_rows)
+
+        miou_mean, miou_std = mean_std(case_test_miou)
+        mdice_mean, mdice_std = mean_std(case_test_mdice)
+        val_miou_mean, val_miou_std = mean_std(case_val_miou)
+
+        summary_row = {
+            "study": args.study,
+            "case_index": i,
+            "overrides": json.dumps(overrides),
+            "n_folds": n_folds,
+            "test_miou_mean": miou_mean,
+            "test_miou_std": miou_std,
+            "test_mdice_mean": mdice_mean,
+            "test_mdice_std": mdice_std,
+            "best_val_miou_mean": val_miou_mean,
+            "best_val_miou_std": val_miou_std,
+            "train_time_sec_total": sum(case_train_time),
+            "num_params": num_params,
+        }
+        summary_rows.append(summary_row)
+        print(f"  -> test_miou={miou_mean:.4f}+-{miou_std:.4f}  test_mdice={mdice_mean:.4f}+-{mdice_std:.4f}")
+
+        with open(summary_csv, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=list(summary_row.keys()))
+            writer.writeheader()
+            writer.writerows(summary_rows)
+
+    print(f"Done. Per-fold results: {fold_csv}")
+    print(f"Done. Case summary (mean+-std over {n_folds} folds): {summary_csv}")
+
+
+if __name__ == "__main__":
+    main()

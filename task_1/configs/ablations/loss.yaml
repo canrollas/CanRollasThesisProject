@@ -1,0 +1,6 @@
+cases:
+  - overrides: {train.loss: ce}
+  - overrides: {train.loss: dice}
+  - overrides: {train.loss: ce_dice}
+  - overrides: {train.loss: focal_dice}
+  - overrides: {train.loss: tversky}
