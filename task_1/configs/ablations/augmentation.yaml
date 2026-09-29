@@ -1,6 +1,0 @@
-cases:
-  - overrides: {train.augmentation: none}
-  - overrides: {train.augmentation: default}
-  - overrides: {train.augmentation: color}
-  - overrides: {train.augmentation: geometric}
-  - overrides: {train.augmentation: heavy}

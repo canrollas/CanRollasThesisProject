@@ -1,9 +1,0 @@
-# ce_dice (0.5*CE + 0.5*Dice) is the exact loss formula from the source
-# paper ("custom" combined loss); it is also BASE's default, so every
-# other axis's rows already train under it.
-cases:
-  - overrides: {train.loss: ce}
-  - overrides: {train.loss: dice}
-  - overrides: {train.loss: ce_dice}
-  - overrides: {train.loss: focal_dice}
-  - overrides: {train.loss: tversky}
