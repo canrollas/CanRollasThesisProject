@@ -26,7 +26,7 @@ from src.utils import apply_overrides, load_color_mapping, load_yaml, set_seed
 STUDIES = ["backbone", "decoder", "weights", "loss", "resolution", "augmentation", "data_efficiency"]
 
 
-def build_loaders(config, train_files, val_files, test_files):
+def build_loaders(config, train_files, val_files, test_files, device="cpu"):
     classes = config["data"]["classes"]
     color_mapping = load_color_mapping(config["data"]["color_mapping_path"], classes)
     resolution = config["train"]["resolution"]
@@ -45,15 +45,23 @@ def build_loaders(config, train_files, val_files, test_files):
     test_ds = WoundRegionDataset(filenames=test_files, transform=eval_tf, **common)
 
     bs = config["train"]["batch_size"]
-    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=2, drop_last=True)
-    val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=2)
-    test_loader = DataLoader(test_ds, batch_size=bs, shuffle=False, num_workers=2)
+    nw = config["train"].get("num_workers", 2)
+    loader_kwargs = dict(
+        num_workers=nw,
+        pin_memory=str(device).startswith("cuda"),
+        persistent_workers=nw > 0,
+    )
+    train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, drop_last=True, **loader_kwargs)
+    val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, **loader_kwargs)
+    test_loader = DataLoader(test_ds, batch_size=bs, shuffle=False, **loader_kwargs)
     return train_loader, val_loader, test_loader, len(classes)
 
 
 def run_one_fold(config, train_files, val_files, test_files, device, label=""):
     set_seed(config["train"]["seed"])
-    train_loader, val_loader, test_loader, num_classes = build_loaders(config, train_files, val_files, test_files)
+    train_loader, val_loader, test_loader, num_classes = build_loaders(
+        config, train_files, val_files, test_files, device=device
+    )
 
     model = build_model(config["model"]["decoder"], config["model"]["encoder"], config["model"]["weights"], num_classes)
     model.to(device)
@@ -212,12 +220,17 @@ def main():
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--batch", type=int, default=None,
                          help="Override train.batch_size from the base config (e.g. --batch 64).")
+    parser.add_argument("--workers", type=int, default=None,
+                         help="Override train.num_workers (DataLoader worker processes) from the base config.")
     args = parser.parse_args()
 
     base_config = load_yaml(args.base_config)
     if args.batch is not None:
         base_config["train"]["batch_size"] = args.batch
         print(f"Overriding batch_size -> {args.batch}")
+    if args.workers is not None:
+        base_config["train"]["num_workers"] = args.workers
+        print(f"Overriding num_workers -> {args.workers}")
 
     n_folds = base_config["data"]["n_folds"]
     assert n_folds >= 3, "n_folds must be at least 3 (paper protocol: 3, ideally 5)"
