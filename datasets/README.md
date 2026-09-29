@@ -11,7 +11,9 @@ independently.
 Semantic segmentation of wound photographs into three regions: wound,
 surrounding skin, and background.
 
-- **`images/`** — 3,476 RGB photographs (224×224 PNG).
+- **`images/`** — 3,476 RGB photographs (PNG). Sizes vary by capture source
+  (224×224 up to ~1,600×1,600, both square and non-square) rather than a
+  single fixed resolution.
 - **`masks/`** — 3,476 color-coded segmentation masks, one per image, with
   matching filenames.
 - **`color-mappings.json`** — maps each class to the RGB color used in the
@@ -20,7 +22,7 @@ surrounding skin, and background.
   | Class   | Color     |
   |---------|-----------|
   | other   | `#000000` |
-  | skin    | `#004CFF` |
+  | skin    | `#0000FF` |
   | wound   | `#FF0000` |
 
 ## 2. `wound-tissue-segmentation/`
