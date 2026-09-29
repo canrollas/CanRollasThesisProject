@@ -1,16 +1,14 @@
-"""Pre-flight compatibility check for the WHOLE ablation grid (all 5 axes:
-backbone, decoder, weights, loss, augmentation).
+"""Pre-flight compatibility check for the WHOLE ablation grid (all 3 axes:
+architecture, loss, augmentation).
 
 Nothing here trains a model -- every check is a single forward pass (or,
 for losses, forward+backward on a tiny random tensor). Run this any time
 an ablation YAML is edited; it exits non-zero if any combination a real
 run would hit is broken. Checks:
 
-  - backbone / decoder: build every (decoder, encoder) pair the grid uses
-    and run one forward pass at BASE's resolution, catching architectural
-    incompatibilities.
-  - weights: verify ssl/swsl/imagenet keys are registered for the
-    requested encoder in SMP's metadata (no download needed).
+  - architecture: build every (decoder, encoder) pair the grid uses (all
+    ImageNet weights -- no SSL/SWSL in this study) and run one forward
+    pass at BASE's resolution, catching architectural incompatibilities.
   - loss: forward+backward every loss on dummy logits/targets, catching
     non-finite loss values or dead/exploding gradients.
   - augmentation: run every policy on a deliberately NON-SQUARE dummy
@@ -122,18 +120,10 @@ def main():
     print("=== BASE ===")
     check_weights(base_decoder, base_encoder, base_weights, base_resolution)
 
-    print("\n=== backbone.yaml (decoder fixed) ===")
-    for case in load_yaml("configs/ablations/backbone.yaml")["cases"]:
-        check_weights(base_decoder, case["overrides"]["model.encoder"], base_weights, base_resolution)
-
-    print("\n=== decoder.yaml (encoder fixed) ===")
-    for case in load_yaml("configs/ablations/decoder.yaml")["cases"]:
-        check_weights(case["overrides"]["model.decoder"], base_encoder, base_weights, base_resolution)
-
-    print("\n=== weights.yaml (decoder+encoder fixed to resnet50) ===")
-    for case in load_yaml("configs/ablations/weights.yaml")["cases"]:
+    print("\n=== architecture.yaml (decoder+encoder jointly vary) ===")
+    for case in load_yaml("configs/ablations/architecture.yaml")["cases"]:
         ov = case["overrides"]
-        check_weights(ov["model.decoder"], ov["model.encoder"], ov["model.weights"], base_resolution)
+        check_weights(ov["model.decoder"], ov["model.encoder"], base_weights, base_resolution)
 
     print("\n=== loss.yaml ===")
     for case in load_yaml("configs/ablations/loss.yaml")["cases"]:
@@ -143,11 +133,6 @@ def main():
     for case in load_yaml("configs/ablations/augmentation.yaml")["cases"]:
         check_augmentation(case["overrides"]["train.augmentation"], base_resolution, num_classes)
 
-    print("\n=== combined.yaml (decoder+encoder jointly vary) ===")
-    for case in load_yaml("configs/ablations/combined.yaml")["cases"]:
-        ov = case["overrides"]
-        check_weights(ov["model.decoder"], ov["model.encoder"], base_weights, base_resolution)
-
     print()
     if failures:
         print(f"{len(failures)} INCOMPATIBLE / BROKEN COMBINATION(S) FOUND:\n")
@@ -156,7 +141,7 @@ def main():
         sys.exit(1)
     else:
         print(f"All axes compatible: {len(checked_arch)} architecture combinations, "
-              f"all weights/loss/augmentation/combined cases OK.")
+              f"all loss/augmentation cases OK.")
 
 
 if __name__ == "__main__":

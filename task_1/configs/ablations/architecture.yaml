@@ -1,0 +1,24 @@
+# Architecture comparison: 5 strongest decoder heads, each paired with
+# one of 4 allowed encoders (mit_b2, resnet50, densenet121, mit_b1) --
+# deliberately NOT re-screening backbones from scratch (the source paper
+# already benchmarked 12 of them across 29/37 configs). Weights are
+# always ImageNet; no SSL/SWSL variation in this study.
+#
+# Pairing notes:
+#   - unet + mit_b2: the paper's own overall-best combination.
+#   - unetplusplus + densenet121: forced -- SMP does not support UNet++
+#     with any MiT encoder at all (the paper notes this same
+#     incompatibility). Not an arbitrary substitute either:
+#     U-Net+++DenseNet-121 was the paper's 2nd-best individual region
+#     result (0.8998 mIoU, ~tied with their overall best).
+#   - fpn + resnet50: solid CNN baseline pairing.
+#   - manet + mit_b1: MA-Net was the paper's overall-best tissue-task
+#     decoder, paired here with the cheaper MiT variant.
+#   - segformer + mit_b2: the canonical SegFormer pairing (transformer
+#     encoder + its native all-MLP decoder).
+cases:
+  - overrides: {model.decoder: unet, model.encoder: mit_b2}
+  - overrides: {model.decoder: unetplusplus, model.encoder: densenet121}
+  - overrides: {model.decoder: fpn, model.encoder: resnet50}
+  - overrides: {model.decoder: manet, model.encoder: mit_b1}
+  - overrides: {model.decoder: segformer, model.encoder: mit_b2}

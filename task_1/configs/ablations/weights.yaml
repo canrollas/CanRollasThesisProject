@@ -1,7 +1,0 @@
-# Pretrained-weight ablation: decoder=unet held fixed. Backbone is forced
-# to resnet50 because SSL/SWSL weights (Yalniz et al., 2019) are only
-# available for that encoder in SMP, matching the source paper's protocol.
-cases:
-  - overrides: {model.decoder: unet, model.encoder: resnet50, model.weights: imagenet}
-  - overrides: {model.decoder: unet, model.encoder: resnet50, model.weights: ssl}
-  - overrides: {model.decoder: unet, model.encoder: resnet50, model.weights: swsl}

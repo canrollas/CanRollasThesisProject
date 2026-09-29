@@ -23,7 +23,7 @@ from src.losses import build_loss
 from src.model import build_model
 from src.utils import apply_overrides, load_color_mapping, load_yaml, set_seed
 
-STUDIES = ["backbone", "decoder", "weights", "loss", "augmentation", "combined"]
+STUDIES = ["architecture", "loss", "augmentation"]
 
 
 def build_loaders(config, train_files, val_files, test_files, device="cpu"):
@@ -215,7 +215,7 @@ def main():
     parser = argparse.ArgumentParser(description="Wound region segmentation ablation runner (k-fold CV)")
     parser.add_argument("--study", required=True, choices=STUDIES + ["all"],
                          help="Which axis to run, or 'all' to run every axis in sequence "
-                              "(backbone, decoder, weights, loss, augmentation, combined).")
+                              "(architecture, loss, augmentation).")
     parser.add_argument("--base-config", default="configs/base.yaml")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--batch", type=int, default=None,
