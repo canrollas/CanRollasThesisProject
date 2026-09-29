@@ -143,6 +143,11 @@ def main():
     for case in load_yaml("configs/ablations/augmentation.yaml")["cases"]:
         check_augmentation(case["overrides"]["train.augmentation"], base_resolution, num_classes)
 
+    print("\n=== combined.yaml (decoder+encoder jointly vary) ===")
+    for case in load_yaml("configs/ablations/combined.yaml")["cases"]:
+        ov = case["overrides"]
+        check_weights(ov["model.decoder"], ov["model.encoder"], base_weights, base_resolution)
+
     print()
     if failures:
         print(f"{len(failures)} INCOMPATIBLE / BROKEN COMBINATION(S) FOUND:\n")
@@ -151,7 +156,7 @@ def main():
         sys.exit(1)
     else:
         print(f"All axes compatible: {len(checked_arch)} architecture combinations, "
-              f"all weights/loss/augmentation cases OK.")
+              f"all weights/loss/augmentation/combined cases OK.")
 
 
 if __name__ == "__main__":
