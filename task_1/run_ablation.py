@@ -1,12 +1,20 @@
 import argparse
 import csv
 import json
+import sys
 import time
 from pathlib import Path
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+
+# `!python script.py` in Colab pipes stdout, which switches Python to full
+# block buffering instead of line buffering -- output then appears in
+# delayed bursts instead of per print() call. Force line buffering so
+# per-epoch progress (including engine.py's prints, same process/stdout)
+# shows up immediately.
+sys.stdout.reconfigure(line_buffering=True)
 
 from src.augmentations import build_transform
 from src.dataset import WoundRegionDataset, list_filenames, make_kfold_splits, split_holdout, subsample
@@ -63,6 +71,7 @@ def run_one_fold(config, train_files, val_files, test_files, device, label=""):
     model, metrics = run_training(
         model, train_loader, val_loader, test_loader, optimizer, scheduler, loss_fn,
         epochs, device, num_classes, config["data"]["ignore_index"], label=label,
+        class_names=config["data"]["classes"],
     )
     metrics["train_time_sec"] = time.time() - start
     metrics["num_params"] = sum(p.numel() for p in model.parameters())

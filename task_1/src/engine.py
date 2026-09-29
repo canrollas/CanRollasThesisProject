@@ -38,11 +38,13 @@ def evaluate(model, loader, num_classes, device, ignore_index=None):
 
 
 def run_training(model, train_loader, val_loader, test_loader, optimizer, scheduler, loss_fn,
-                  epochs, device, num_classes, ignore_index=None, label=""):
+                  epochs, device, num_classes, ignore_index=None, label="", class_names=None):
     best_miou = -1.0
     best_state = None
     history = []
     prefix = f"[{label}] " if label else ""
+    if class_names is None:
+        class_names = [str(i) for i in range(num_classes)]
 
     for epoch in range(epochs):
         epoch_start = time.time()
@@ -56,11 +58,14 @@ def run_training(model, train_loader, val_loader, test_loader, optimizer, schedu
             best_miou = val_metrics["miou"]
             best_state = copy.deepcopy(model.state_dict())
 
+        per_class = "  ".join(
+            f"iou[{name}]={iou:.3f}" for name, iou in zip(class_names, val_metrics["iou_per_class"])
+        )
         epoch_time = time.time() - epoch_start
         print(f"    {prefix}epoch {epoch + 1:3d}/{epochs}  "
               f"train_loss={train_loss:.4f}  val_miou={val_metrics['miou']:.4f}  "
               f"best_val_miou={best_miou:.4f}{'  (new best)' if is_best else ''}  "
-              f"[{epoch_time:.1f}s/epoch]")
+              f"{per_class}  [{epoch_time:.1f}s/epoch]")
 
     model.load_state_dict(best_state)
     test_metrics = evaluate(model, test_loader, num_classes, device, ignore_index)
