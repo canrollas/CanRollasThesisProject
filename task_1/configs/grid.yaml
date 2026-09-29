@@ -1,0 +1,37 @@
+architectures:
+  - unet
+  - unetplusplus
+  - manet
+  - fpn
+  - deeplabv3plus
+
+encoders:
+  - {name: resnet18, family: resnet}
+  - {name: resnet34, family: resnet}
+  - {name: resnet50, family: resnet}
+  - {name: efficientnet-b0, family: efficientnet}
+  - {name: efficientnet-b3, family: efficientnet}
+  - {name: efficientnet-b4, family: efficientnet}
+  - {name: mobilenet_v2, family: mobilenet}
+  - {name: densenet121, family: densenet}
+  - {name: resnext50_32x4d, family: resnext}
+  - {name: mit_b1, family: mit}
+  - {name: mit_b2, family: mit}
+  - {name: mit_b3, family: mit}
+
+default_weights: imagenet
+
+# Semi-supervised pretrained checkpoints are only published for resnet50 in
+# SMP's encoder registry, so this axis is a fixed add-on rather than a full
+# cross product.
+extra_weights:
+  encoder: resnet50
+  weights: [ssl, swsl]
+
+# SegFormer is not one of the 5 generic SMP decoders above: it uses its own
+# hand-written all-MLP decode head (src/model.py:SegFormer), only compatible
+# with the MiT encoder family.
+segformer:
+  encoders: [mit_b1, mit_b2, mit_b3]
+  weights: imagenet
+  decoder_embed_dim: 256

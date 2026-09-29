@@ -7,6 +7,7 @@ datasets/*
 # Local ablation outputs (Colab-generated, not source-controlled)
 task_1/checkpoints/
 task_1/results/
+task_1/configs/resolved_grid.json
 
 # Python
 __pycache__/
