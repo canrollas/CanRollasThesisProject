@@ -200,9 +200,14 @@ def main():
                               "(backbone, decoder, weights, loss, resolution, augmentation, data_efficiency).")
     parser.add_argument("--base-config", default="configs/base.yaml")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--batch", type=int, default=None,
+                         help="Override train.batch_size from the base config (e.g. --batch 64).")
     args = parser.parse_args()
 
     base_config = load_yaml(args.base_config)
+    if args.batch is not None:
+        base_config["train"]["batch_size"] = args.batch
+        print(f"Overriding batch_size -> {args.batch}")
 
     n_folds = base_config["data"]["n_folds"]
     assert n_folds >= 3, "n_folds must be at least 3 (paper protocol: 3, ideally 5)"
