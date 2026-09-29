@@ -43,7 +43,7 @@ def build_loaders(config, train_files, val_files, test_files):
     return train_loader, val_loader, test_loader, len(classes)
 
 
-def run_one_fold(config, train_files, val_files, test_files, device):
+def run_one_fold(config, train_files, val_files, test_files, device, label=""):
     set_seed(config["train"]["seed"])
     train_loader, val_loader, test_loader, num_classes = build_loaders(config, train_files, val_files, test_files)
 
@@ -62,7 +62,7 @@ def run_one_fold(config, train_files, val_files, test_files, device):
     start = time.time()
     model, metrics = run_training(
         model, train_loader, val_loader, test_loader, optimizer, scheduler, loss_fn,
-        epochs, device, num_classes, config["data"]["ignore_index"],
+        epochs, device, num_classes, config["data"]["ignore_index"], label=label,
     )
     metrics["train_time_sec"] = time.time() - start
     metrics["num_params"] = sum(p.numel() for p in model.parameters())
@@ -128,7 +128,8 @@ def run_study(study, base_config, folds, n_folds, device):
             print(f"  fold {fold_idx + 1}/{n_folds} "
                   f"(train={len(train_files_fold)}, val={len(val_files)}, test={len(test_files)})")
 
-            model, metrics = run_one_fold(config, train_files_fold, val_files, test_files, device)
+            label = f"{study} case{i}/fold{fold_idx} {json.dumps(overrides)}"
+            model, metrics = run_one_fold(config, train_files_fold, val_files, test_files, device, label=label)
             num_params = metrics["num_params"]
 
             ckpt_path = ""
