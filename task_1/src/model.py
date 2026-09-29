@@ -10,6 +10,7 @@ DECODERS = {
     "pan": smp.PAN,
     "pspnet": smp.PSPNet,
     "deeplabv3": smp.DeepLabV3,
+    "segformer": smp.Segformer,
 }
 
 
