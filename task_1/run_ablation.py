@@ -74,63 +74,61 @@ def mean_std(values):
     return float(arr.mean()), float(arr.std())
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Wound region segmentation ablation runner (k-fold CV)")
-    parser.add_argument("--study", required=True, choices=STUDIES)
-    parser.add_argument("--base-config", default="configs/base.yaml")
-    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
-    args = parser.parse_args()
+def load_completed_folds(fold_csv):
+    """Returns {(case_index, fold_index): row_dict} for folds already
+    written by a previous (possibly interrupted) run, so re-running a
+    study never retrains work that is already on disk."""
+    if not fold_csv.exists():
+        return {}
+    completed = {}
+    with open(fold_csv, newline="") as f:
+        for row in csv.DictReader(f):
+            completed[(int(row["case_index"]), int(row["fold_index"]))] = row
+    return completed
 
-    base_config = load_yaml(args.base_config)
-    study_config = load_yaml(f"configs/ablations/{args.study}.yaml")
 
-    n_folds = base_config["data"]["n_folds"]
-    assert n_folds >= 3, "n_folds must be at least 3 (paper protocol: 3, ideally 5)"
+def run_study(study, base_config, folds, n_folds, device):
+    study_config = load_yaml(f"configs/ablations/{study}.yaml")
 
-    all_filenames = list_filenames(base_config["data"]["images_dir"])
-    dev_pool, holdout_files = split_holdout(
-        all_filenames, base_config["data"]["holdout_fraction"], base_config["data"]["holdout_seed"]
-    )
-    print(f"Holdout: {len(holdout_files)} files set aside (never used by ablation), "
-          f"dev pool: {len(dev_pool)} files")
-
-    holdout_record = Path(base_config["output"]["results_csv"]).parent / "holdout_files.json"
-    holdout_record.parent.mkdir(parents=True, exist_ok=True)
-    if not holdout_record.exists():
-        with open(holdout_record, "w") as f:
-            json.dump({
-                "holdout_fraction": base_config["data"]["holdout_fraction"],
-                "holdout_seed": base_config["data"]["holdout_seed"],
-                "files": holdout_files,
-            }, f, indent=2)
-
-    folds = make_kfold_splits(
-        dev_pool, n_folds, base_config["data"]["split_seed"], base_config["data"]["val_fraction_of_remaining"]
-    )
-
-    fold_csv = Path(base_config["output"]["results_csv"]).with_name(f"{args.study}_folds.csv")
-    summary_csv = Path(base_config["output"]["results_csv"]).with_name(f"{args.study}_summary.csv")
+    fold_csv = Path(base_config["output"]["results_csv"]).with_name(f"{study}_folds.csv")
+    summary_csv = Path(base_config["output"]["results_csv"]).with_name(f"{study}_summary.csv")
     fold_csv.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint_dir = Path(base_config["output"]["checkpoint_dir"]) / args.study
+    checkpoint_dir = Path(base_config["output"]["checkpoint_dir"]) / study
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    fold_rows = []
+    completed = load_completed_folds(fold_csv)
+    if completed:
+        print(f"[{study}] resuming: {len(completed)} fold(s) already completed in {fold_csv}")
+
+    fold_rows = list(completed.values())
     summary_rows = []
 
     for i, case in enumerate(study_config["cases"]):
         overrides = case["overrides"]
         config = apply_overrides(base_config, overrides)
-        print(f"[{args.study}] case {i + 1}/{len(study_config['cases'])}: {overrides}")
+        print(f"[{study}] case {i + 1}/{len(study_config['cases'])}: {overrides}")
 
         case_test_miou, case_test_mdice, case_val_miou, case_train_time = [], [], [], []
         num_params = None
 
         for fold_idx, (train_files, val_files, test_files) in enumerate(folds):
+            key = (i, fold_idx)
+            if key in completed:
+                row = completed[key]
+                print(f"  fold {fold_idx + 1}/{n_folds} already done, skipping "
+                      f"(test_miou={float(row['test_miou']):.4f})")
+                case_test_miou.append(float(row["test_miou"]))
+                case_test_mdice.append(float(row["test_mdice"]))
+                case_val_miou.append(float(row["best_val_miou"]))
+                case_train_time.append(float(row["train_time_sec"]))
+                num_params = int(row["num_params"])
+                continue
+
             train_files_fold = subsample(train_files, config["train"]["train_fraction"], config["train"]["seed"])
             print(f"  fold {fold_idx + 1}/{n_folds} "
                   f"(train={len(train_files_fold)}, val={len(val_files)}, test={len(test_files)})")
 
-            model, metrics = run_one_fold(config, train_files_fold, val_files, test_files, args.device)
+            model, metrics = run_one_fold(config, train_files_fold, val_files, test_files, device)
             num_params = metrics["num_params"]
 
             ckpt_path = ""
@@ -143,7 +141,7 @@ def main():
                     json.dump(fold_config, f, indent=2)
 
             fold_row = {
-                "study": args.study,
+                "study": study,
                 "case_index": i,
                 "fold_index": fold_idx,
                 "overrides": json.dumps(overrides),
@@ -171,7 +169,7 @@ def main():
         val_miou_mean, val_miou_std = mean_std(case_val_miou)
 
         summary_row = {
-            "study": args.study,
+            "study": study,
             "case_index": i,
             "overrides": json.dumps(overrides),
             "n_folds": n_folds,
@@ -192,8 +190,50 @@ def main():
             writer.writeheader()
             writer.writerows(summary_rows)
 
-    print(f"Done. Per-fold results: {fold_csv}")
-    print(f"Done. Case summary (mean+-std over {n_folds} folds): {summary_csv}")
+    print(f"[{study}] done. Per-fold: {fold_csv}  Summary (mean+-std over {n_folds} folds): {summary_csv}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Wound region segmentation ablation runner (k-fold CV)")
+    parser.add_argument("--study", required=True, choices=STUDIES + ["all"],
+                         help="Which axis to run, or 'all' to run every axis in sequence "
+                              "(backbone, decoder, weights, loss, resolution, augmentation, data_efficiency).")
+    parser.add_argument("--base-config", default="configs/base.yaml")
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = parser.parse_args()
+
+    base_config = load_yaml(args.base_config)
+
+    n_folds = base_config["data"]["n_folds"]
+    assert n_folds >= 3, "n_folds must be at least 3 (paper protocol: 3, ideally 5)"
+
+    all_filenames = list_filenames(base_config["data"]["images_dir"])
+    dev_pool, holdout_files = split_holdout(
+        all_filenames, base_config["data"]["holdout_fraction"], base_config["data"]["holdout_seed"]
+    )
+    print(f"Holdout: {len(holdout_files)} files set aside (never used by ablation), "
+          f"dev pool: {len(dev_pool)} files")
+
+    holdout_record = Path(base_config["output"]["results_csv"]).parent / "holdout_files.json"
+    holdout_record.parent.mkdir(parents=True, exist_ok=True)
+    if not holdout_record.exists():
+        with open(holdout_record, "w") as f:
+            json.dump({
+                "holdout_fraction": base_config["data"]["holdout_fraction"],
+                "holdout_seed": base_config["data"]["holdout_seed"],
+                "files": holdout_files,
+            }, f, indent=2)
+
+    folds = make_kfold_splits(
+        dev_pool, n_folds, base_config["data"]["split_seed"], base_config["data"]["val_fraction_of_remaining"]
+    )
+
+    studies_to_run = STUDIES if args.study == "all" else [args.study]
+    for study in studies_to_run:
+        run_study(study, base_config, folds, n_folds, args.device)
+
+    if args.study == "all":
+        print(f"\nAll {len(STUDIES)} studies done: {', '.join(STUDIES)}")
 
 
 if __name__ == "__main__":
