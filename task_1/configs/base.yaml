@@ -21,7 +21,8 @@ train:
   augmentation: default
   batch_size: 16
   num_workers: 8
-  epochs: 100
+  epochs: 40  # cut from the paper's 100 under a 1-month thesis deadline;
+              # re-run the final recommended config at 100 epochs separately
   lr: 0.0001
   weight_decay: 0.00001
   lr_min_factor: 0.01
