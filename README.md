@@ -96,6 +96,15 @@ python run_ablation.py --study segformer_only
 python run_ablation.py --smoke               # 1 config, 1 fold, 2 epochs — sanity check
 ```
 
+After every completed `(config, fold)`, a 3-panel PNG (image / ground truth
+/ prediction overlay) is saved to `results/samples/`, so segmentation
+quality can be checked visually without re-running inference.
+
+[`task_1/colab_ablation.ipynb`](task_1/colab_ablation.ipynb) is a ready-to-run
+Colab notebook: mounts Drive, clones/pulls this repo, unzips the dataset,
+redirects checkpoints/results/samples to Drive for persistence across
+sessions, and previews the saved sample panels inline.
+
 ## Roadmap
 
 - [x] Task 1: wound region segmentation — architecture/encoder ablation, 3-fold CV
