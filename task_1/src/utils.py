@@ -56,6 +56,22 @@ def append_result(results_csv, row):
         writer.writerow(row)
 
 
+FAILURE_FIELDS = ["config_id", "architecture", "encoder", "weights", "fold", "error", "timestamp"]
+
+
+def append_failure(failures_csv, row):
+    """Logs a (config, fold) that raised instead of crashing the whole grid,
+    so it's visible and can be investigated/re-run individually afterwards."""
+    path = Path(failures_csv)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not path.exists()
+    with open(path, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=FAILURE_FIELDS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(row)
+
+
 SUMMARY_NUMERIC_FIELDS = [
     "miou", "mdice", "iou_bg", "iou_skin", "iou_wound",
     "dice_bg", "dice_skin", "dice_wound", "train_time_s",
