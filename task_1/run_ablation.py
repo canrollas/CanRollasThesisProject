@@ -13,6 +13,7 @@ import sys
 import time
 from pathlib import Path
 
+import torch
 from torch.utils.data import DataLoader
 
 TASK_DIR = Path(__file__).parent
@@ -26,6 +27,7 @@ from src.losses import CombinedLoss  # noqa: E402
 from src.model import build_model, build_segformer  # noqa: E402
 from src.splits import build_folds  # noqa: E402
 from src.utils import append_result, get_device, load_completed_keys, load_yaml, set_seed, write_summary  # noqa: E402
+from src.visualize import save_sample_panel  # noqa: E402
 
 
 def build_model_from_config(cfg, num_classes):
@@ -130,6 +132,17 @@ def main():
                                       ce_weight=base_cfg["loss"]["ce_weight"],
                                       dice_weight=base_cfg["loss"]["dice_weight"])
             test_stats = run_epoch(model, test_loader, criterion, device, optimizer=None, num_classes=num_classes)
+
+            try:
+                sample_image, sample_gt = test_loader.dataset[0]
+                model.eval()
+                with torch.no_grad():
+                    logits = model(sample_image.unsqueeze(0).to(device))
+                    pred_mask = logits.argmax(dim=1).squeeze(0).cpu()
+                sample_path = results_csv.parent / "samples" / f"{cfg['config_id']}_fold{fold_idx}.png"
+                save_sample_panel(sample_image, sample_gt, pred_mask, colors, sample_path)
+            except Exception as exc:  # noqa: BLE001 - a bad sample image shouldn't kill the whole grid
+                print(f"[{cfg['config_id']} fold{fold_idx}] sample panel failed: {exc}", flush=True)
 
             row = {
                 "config_id": cfg["config_id"],
