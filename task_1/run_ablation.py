@@ -66,6 +66,9 @@ def parse_args():
     p.add_argument("--batch", type=int, default=None)
     p.add_argument("--epochs", type=int, default=None)
     p.add_argument("--study", default="all", help="'all', 'segformer_only', or an architecture name")
+    p.add_argument("--configs", default=None,
+                    help="comma-separated config_id allowlist (from configs/resolved_grid.json), "
+                         "e.g. 'unet__mit_b2__imagenet,unet__resnet50__ssl' -- overrides --study")
     p.add_argument("--smoke", action="store_true", help="1 config, 1 fold, 2 epochs, tiny subset")
     return p.parse_args()
 
@@ -78,7 +81,14 @@ def main():
         raise SystemExit("configs/resolved_grid.json not found — run check_compatibility.py first")
     grid = json.loads(resolved_path.read_text())
 
-    if args.study == "segformer_only":
+    if args.configs is not None:
+        wanted = [c.strip() for c in args.configs.split(",") if c.strip()]
+        by_id = {c["config_id"]: c for c in grid}
+        missing = [c for c in wanted if c not in by_id]
+        if missing:
+            raise SystemExit(f"--configs: unknown config_id(s) not in resolved_grid.json: {missing}")
+        grid = [by_id[c] for c in wanted]
+    elif args.study == "segformer_only":
         grid = [c for c in grid if c["architecture"] == "segformer"]
     elif args.study != "all":
         grid = [c for c in grid if c["architecture"] == args.study]
