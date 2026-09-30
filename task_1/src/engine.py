@@ -55,14 +55,18 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
     best_state = None
 
     if resume_path is not None and resume_path.exists():
-        ckpt = torch.load(resume_path, map_location=device)
-        model.load_state_dict(ckpt["model_state"])
-        optimizer.load_state_dict(ckpt["optimizer_state"])
-        scheduler.load_state_dict(ckpt["scheduler_state"])
-        start_epoch = ckpt["epoch"] + 1
-        best_miou = ckpt["best_miou"]
-        best_state = ckpt["best_state"]
-        print(f"{log_prefix} resuming from epoch {start_epoch}/{epochs} (best={best_miou:.4f})", flush=True)
+        try:
+            ckpt = torch.load(resume_path, map_location=device)
+            model.load_state_dict(ckpt["model_state"])
+            optimizer.load_state_dict(ckpt["optimizer_state"])
+            scheduler.load_state_dict(ckpt["scheduler_state"])
+            start_epoch = ckpt["epoch"] + 1
+            best_miou = ckpt["best_miou"]
+            best_state = ckpt["best_state"]
+            print(f"{log_prefix} resuming from epoch {start_epoch}/{epochs} (best={best_miou:.4f})", flush=True)
+        except Exception as exc:  # noqa: BLE001 - a truncated/corrupt checkpoint (killed mid-write) shouldn't be fatal
+            print(f"{log_prefix} resume checkpoint unreadable ({exc}), starting from epoch 1", flush=True)
+            resume_path.unlink()
 
     for epoch in range(start_epoch, epochs + 1):
         t0 = time.time()
@@ -83,6 +87,7 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
         )
 
         if resume_path is not None:
+            tmp_path = resume_path.with_suffix(resume_path.suffix + ".tmp")
             torch.save({
                 "epoch": epoch,
                 "model_state": model.state_dict(),
@@ -90,7 +95,8 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
                 "scheduler_state": scheduler.state_dict(),
                 "best_miou": best_miou,
                 "best_state": best_state,
-            }, resume_path)
+            }, tmp_path)
+            tmp_path.replace(resume_path)
 
     if best_state is not None:
         model.load_state_dict(best_state)
