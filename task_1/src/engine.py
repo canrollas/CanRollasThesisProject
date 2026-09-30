@@ -43,16 +43,28 @@ def run_epoch(model, loader, criterion, device, optimizer=None, num_classes=3):
 
 
 def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_min_factor,
-        ce_weight=0.5, dice_weight=0.5, num_classes=3, log_prefix="", checkpoint_path=None):
+        ce_weight=0.5, dice_weight=0.5, num_classes=3, log_prefix="", checkpoint_path=None,
+        resume_path=None):
     model.to(device)
     criterion = CombinedLoss(num_classes=num_classes, ce_weight=ce_weight, dice_weight=dice_weight)
     optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=lr * eta_min_factor)
 
+    start_epoch = 1
     best_miou = -1.0
     best_state = None
 
-    for epoch in range(1, epochs + 1):
+    if resume_path is not None and resume_path.exists():
+        ckpt = torch.load(resume_path, map_location=device)
+        model.load_state_dict(ckpt["model_state"])
+        optimizer.load_state_dict(ckpt["optimizer_state"])
+        scheduler.load_state_dict(ckpt["scheduler_state"])
+        start_epoch = ckpt["epoch"] + 1
+        best_miou = ckpt["best_miou"]
+        best_state = ckpt["best_state"]
+        print(f"{log_prefix} resuming from epoch {start_epoch}/{epochs} (best={best_miou:.4f})", flush=True)
+
+    for epoch in range(start_epoch, epochs + 1):
         t0 = time.time()
         train_stats = run_epoch(model, train_loader, criterion, device, optimizer, num_classes)
         val_stats = run_epoch(model, val_loader, criterion, device, None, num_classes)
@@ -70,9 +82,22 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
             flush=True,
         )
 
+        if resume_path is not None:
+            torch.save({
+                "epoch": epoch,
+                "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "scheduler_state": scheduler.state_dict(),
+                "best_miou": best_miou,
+                "best_state": best_state,
+            }, resume_path)
+
     if best_state is not None:
         model.load_state_dict(best_state)
         if checkpoint_path is not None:
             torch.save(best_state, checkpoint_path)
+
+    if resume_path is not None and resume_path.exists():
+        resume_path.unlink()
 
     return model, best_miou

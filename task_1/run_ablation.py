@@ -111,6 +111,7 @@ def main():
             model = build_model_from_config(cfg, num_classes)
             params_m = count_params_m(model)
             checkpoint_path = checkpoint_dir / f"{cfg['config_id']}_fold{fold_idx}.pt"
+            resume_path = checkpoint_dir / f"{cfg['config_id']}_fold{fold_idx}.resume.pt"
 
             t0 = time.time()
             model, _ = fit(
@@ -121,6 +122,7 @@ def main():
                 num_classes=num_classes,
                 log_prefix=f"[{cfg['config_id']} fold{fold_idx}]",
                 checkpoint_path=checkpoint_path,
+                resume_path=resume_path,
             )
             train_time_s = time.time() - t0
 
