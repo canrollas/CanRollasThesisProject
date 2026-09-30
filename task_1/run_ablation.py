@@ -9,6 +9,7 @@ grid can be worked through across multiple Colab sessions.
 """
 import argparse
 import json
+import random
 import sys
 import time
 from pathlib import Path
@@ -134,7 +135,8 @@ def main():
             test_stats = run_epoch(model, test_loader, criterion, device, optimizer=None, num_classes=num_classes)
 
             try:
-                sample_image, sample_gt = test_loader.dataset[0]
+                sample_idx = random.randrange(len(test_loader.dataset))
+                sample_image, sample_gt = test_loader.dataset[sample_idx]
                 model.eval()
                 with torch.no_grad():
                     logits = model(sample_image.unsqueeze(0).to(device))
