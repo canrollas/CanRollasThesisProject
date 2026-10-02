@@ -18,3 +18,18 @@ def iou_dice_from_confusion(conf):
     iou = tp / (tp + fp + fn).clip(min=1e-9)
     dice = 2 * tp / (2 * tp + fp + fn).clip(min=1e-9)
     return iou, dice
+
+
+def precision_recall_from_confusion(conf):
+    """conf: numpy array, rows = ground truth class, cols = predicted class.
+    precision = TP / (TP + FP) (column sum -> how much of what was predicted
+    this class is correct); recall = TP / (TP + FN) (row sum -> how much of
+    what actually is this class was caught).
+    """
+    conf = conf.astype("float64")
+    tp = conf.diagonal()
+    fp = conf.sum(0) - tp
+    fn = conf.sum(1) - tp
+    precision = tp / (tp + fp).clip(min=1e-9)
+    recall = tp / (tp + fn).clip(min=1e-9)
+    return precision, recall
