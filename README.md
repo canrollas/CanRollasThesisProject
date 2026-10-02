@@ -22,7 +22,7 @@ The work is split into three tasks, each backed by its own dataset:
 | # | Task | Type | Status |
 |---|------|------|--------|
 | 1 | Wound region segmentation (wound / skin / background) | Semantic segmentation | ✅ Implemented — [`task_1/`](task_1) |
-| 2 | Wound tissue segmentation (slough, necrosis, granulation, ...) | Semantic segmentation | 🔜 Planned |
+| 2 | Wound tissue segmentation (slough, necrosis, granulation, ...) | Semantic segmentation | ✅ Implemented — [`task_2/`](task_2) |
 | 3 | Wound stage classification (Stage 1–4) | Image classification | 🔜 Planned |
 
 ## Repository structure
@@ -31,12 +31,18 @@ The work is split into three tasks, each backed by its own dataset:
 .
 ├── datasets/           # Clinical image datasets (not tracked in git — see below)
 │   └── README.md       # Full dataset documentation (classes, sizes, color maps)
-└── task_1/              # Wound region segmentation pipeline
-    ├── configs/         # Ablation grid (architecture x encoder x weights) + training hyperparameters
-    ├── src/             # Dataset, models, losses, training engine, metrics
-    ├── check_compatibility.py  # Resolves the architecture/encoder grid into valid configs
-    ├── run_ablation.py         # Trains + evaluates every (config, fold) combination
-    └── run_efficiency.py       # Measures params and inference latency per config
+├── task_1/              # Wound region segmentation pipeline
+│   ├── configs/         # Ablation grid (architecture x encoder x weights) + training hyperparameters
+│   ├── src/             # Dataset, models, losses, training engine, metrics
+│   ├── check_compatibility.py  # Resolves the architecture/encoder grid into valid configs
+│   ├── run_ablation.py         # Trains + evaluates every (config, fold) combination
+│   └── run_efficiency.py       # Measures params and inference latency per config
+└── task_2/              # Wound tissue segmentation pipeline (top-10 configs, 3-fold)
+    ├── configs/         # Hand-picked top-10 (architecture, encoder, weights) + training hyperparameters
+    ├── src/             # Dataset, models, void-aware losses/metrics, training engine
+    ├── build_selected_configs.py  # Resolves configs/selected.yaml into selected_configs.json
+    ├── run_ablation.py            # Trains + evaluates every (config, fold) combination
+    └── run_efficiency.py          # Measures params and inference latency per config
 ```
 
 ## Datasets
@@ -105,10 +111,51 @@ Colab notebook: mounts Drive, clones/pulls this repo, unzips the dataset,
 redirects checkpoints/results/samples to Drive for persistence across
 sessions, and previews the saved sample panels inline.
 
+## Task 2 — Wound Tissue Segmentation
+
+Re-runs the 10 best-performing configurations from the paper's 37-config
+intra-wound tissue segmentation benchmark (`Deep-Learning-Konf.pdf`, Table 5)
+on this project's `wound-tissue-segmentation` dataset, under the same 3-fold
+protocol, to verify they reproduce on this data before committing further
+compute to the full 37-config grid.
+
+- **Selected configs (ranked by the paper's reported mIoU):** MA-Net&MiT-B2,
+  U-Net&MiT-B1, U-Net&MiT-B2, U-Net&ResNet-50(SSL), MA-Net&ResNet-34,
+  DeepLabV3&ResNet-50(SWSL), U-Net&ResNet-34, DeepLabV3+&MiT-B3,
+  U-Net++&ResNet-50, LinkNet&ResNet-34 — see
+  [`task_2/configs/selected.yaml`](task_2/configs/selected.yaml)
+- **Classes:** granulation, slough/fibrin, necrosis. `outside_wound`,
+  `skin_remnant`, `tendon`, and `bone` pixels are treated as void (excluded
+  from loss and metrics — this dataset has a `bone` class the paper's
+  version didn't annotate)
+- **Evaluation:** 3-fold cross-validation (paper protocol: shuffle once with
+  a fixed seed, split into 3 consecutive chunks), mIoU / mDice per class
+- **Loss:** combined cross-entropy + Dice, both void-aware (`ignore_index`)
+- **Augmentation:** horizontal/vertical flip, 90/180/270° rotation
+
+### Reproducing
+
+```bash
+cd task_2
+python -m venv .venv && source .venv/bin/activate   # or reuse task_1/.venv
+pip install -r requirements.txt
+
+python build_selected_configs.py   # resolves configs/selected.yaml -> configs/selected_configs.json
+python run_ablation.py             # trains + evaluates every (config, fold) -> results/ablation_results.csv
+python run_efficiency.py           # params + latency per config -> results/efficiency.csv
+```
+
+Same interrupt/resume behavior as `task_1/run_ablation.py`:
+
+```bash
+python run_ablation.py --configs unet__mit_b2__imagenet,manet__mit_b2__imagenet
+python run_ablation.py --smoke     # 1 config, 1 fold, 2 epochs — sanity check
+```
+
 ## Roadmap
 
 - [x] Task 1: wound region segmentation — architecture/encoder ablation, 3-fold CV
-- [ ] Task 2: wound tissue segmentation
+- [x] Task 2: wound tissue segmentation — top-10 config re-run, 3-fold CV
 - [ ] Task 3: wound stage classification
 - [ ] Cross-task pipeline (region → tissue → stage)
 

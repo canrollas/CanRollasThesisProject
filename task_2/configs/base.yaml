@@ -1,0 +1,31 @@
+image_size: 512
+batch_size: 8
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+loss:
+  ce_weight: 0.5
+  dice_weight: 0.5
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+# Fixed class order: index must match src/dataset.py CLASS_ORDER and
+# src/utils.py RESULT_FIELDS (granulation, slough/fibrin, necrosis). Pixels
+# labelled outside_wound, skin_remnant, tendon, or bone are void (see
+# src/dataset.py VOID_CLASSES) and excluded from both loss and metrics.
+classes: [granulation, slough, necrosis]
+void_label: 255
+
+checkpoint_dir: checkpoints
+results_csv: results/ablation_results.csv

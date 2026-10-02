@@ -1,0 +1,16 @@
+# Top-10 of the 37 (architecture, encoder, weights) configurations from the
+# paper's Table 5 full intra-wound tissue segmentation benchmark, ranked by
+# mIoU on their 568-image clinical dataset. Hand-picked (not grid-resolved)
+# for the 3-fold re-run on this project's wound-tissue-segmentation dataset.
+# paper_miou is reference only, not reproduced automatically.
+configs:
+  - {architecture: manet,          encoder: mit_b2,   weights: imagenet, paper_miou: 0.7263}
+  - {architecture: unet,           encoder: mit_b1,   weights: imagenet, paper_miou: 0.7203}
+  - {architecture: unet,           encoder: mit_b2,   weights: imagenet, paper_miou: 0.7176}
+  - {architecture: unet,           encoder: resnet50, weights: ssl,      paper_miou: 0.7153}
+  - {architecture: manet,          encoder: resnet34, weights: imagenet, paper_miou: 0.7153}
+  - {architecture: deeplabv3,      encoder: resnet50, weights: swsl,     paper_miou: 0.7148}
+  - {architecture: unet,           encoder: resnet34, weights: imagenet, paper_miou: 0.7135}
+  - {architecture: deeplabv3plus,  encoder: mit_b3,   weights: imagenet, paper_miou: 0.7131}
+  - {architecture: unetplusplus,   encoder: resnet50, weights: imagenet, paper_miou: 0.7119}
+  - {architecture: linknet,        encoder: resnet34, weights: imagenet, paper_miou: 0.7114}

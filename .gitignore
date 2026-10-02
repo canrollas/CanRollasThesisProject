@@ -8,6 +8,8 @@ datasets/*
 task_1/checkpoints/
 task_1/results/
 task_1/configs/resolved_grid.json
+task_2/checkpoints/
+task_2/results/
 
 # Python
 __pycache__/

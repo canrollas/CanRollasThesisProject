@@ -1,28 +1,31 @@
-# Dual-Head Multi-Task Proposal (Stage Classification + Segmentation)
+# Field-of-View Ablation for Wound Stage Classification
 
-Advisor suggestion (2026-09-30): instead of (or in addition to) the full
-task_1 architecture ablation, explore a dual-head network that shares an
-encoder between wound staging and a segmentation task, as a distinct
-thesis contribution beyond replicating the paper's benchmark.
+## Status (2026-10-02)
+
+The dual-head shared-encoder idea below (Model 1 / Model 2 / baseline, joint
+training) is **dropped**. It doesn't fit a 1-month timeline on top of the
+rest of the thesis: Task 2 (tissue) and Task 3 (stage) don't have their own
+baseline models trained yet, the shared-trunk design still had open
+questions (architecture, `lambda_cls`, split protocol), and joint training
+is inherently iterative — no guarantee the first attempt shows anything.
+
+What's kept from it is the one finding that's actually cheap to act on: the
+**dataset field-of-view finding** below. It motivates a much lighter
+ablation that needs no joint training and no new datasets — just the
+already-trained Task 1 region model and three ordinary stage classifiers.
 
 ## Motivation
 
 The paper (`segmentation_benchmarking.pdf`) trains wound region
 segmentation and intra-wound tissue segmentation as two independent,
-sequentially-chained models (Stage 1 crops the wound, Stage 2 classifies
-tissue within the crop). Wound stage classification (Stage 1-4 severity)
-isn't part of that pipeline at all — it's a separate dataset, currently
-unused in task_1.
-
-A shared-encoder multi-task model tests whether joint training transfers
-useful representations across tasks, which matters most for the smallest
-dataset here (stage classification: 1,091 images) that's otherwise prone
-to overfitting on its own.
+sequentially-chained models (Task 1 crops the wound, then the tissue model
+classifies tissue within that crop). Wound stage classification (Stage 1-4
+severity) isn't part of that chain at all: PIID has no spatial annotation,
+so it is currently classified from the raw, uncropped photograph.
 
 ## Dataset field-of-view finding
 
-Inspecting sample images from all three datasets (`datasets/*/`) before
-committing to a pairing:
+Inspecting sample images from all three datasets (`datasets/*/`):
 
 - **Region dataset**: wide shot, full body part + background visible.
 - **Tissue dataset**: tight close-up, wound interior only, no skin/background
@@ -32,97 +35,66 @@ committing to a pairing:
   Stage 3-4 samples look like the tissue dataset (deep open wound, wound bed
   dominates the frame, minimal skin context).
 
-Conclusion: stage classification isn't a single visual domain, so no single
-pairing (region+stage or tissue+stage) covers the whole severity spectrum
-well on its own. Rather than force a single 3-way shared encoder (harder to
-balance, more failure modes to debug in a week), train **two separate
-dual-head models** and compare which pairing helps staging more, and where.
+This is the open question worth testing on its own: if a stage classifier's
+accuracy depends on how tightly the input is cropped around the wound, then
+the pipeline's choice to classify stage from the *raw, uncropped* photograph
+is itself a design decision that hasn't been tested against the alternative
+of classifying from a crop produced by Task 1.
 
-## Proposed models
+## Proposed ablation
 
-### Model 1: Region + Stage
-Shared encoder, two heads:
-- Segmentation head → wound region mask (background/skin/wound), reusing
-  task_1's `wound-region-segmentation` dataset.
-- Classification head → wound stage (1-4), using `wound-stage-classification`.
+Train the **same classifier architecture/backbone, same training protocol**,
+three times, on three different crops of the stage dataset. No shared
+encoder, no auxiliary segmentation loss, no joint training — just three
+independent stage classifiers that differ only in what field of view they
+see.
 
-Hypothesis: region-segmentation features (skin condition, wound boundary)
-help most on early stages, where the visual signal is subtle skin change
-rather than an open wound.
+| Variant | Input | How it's produced |
+|---|---|---|
+| **Raw** | Full, uncropped PIID photograph | Already exists — current pipeline default |
+| **Wide crop** | Bounding box around wound + surrounding skin, with margin | Run the trained Task 1 model (best config: MAnet + MiT-B2, see `task_1/results/.../ablation_summary.csv`) on each PIID image, take the union of predicted wound+skin pixels, crop to that box |
+| **Tight crop** | Bounding box around predicted wound pixels only, no margin | Same Task 1 inference pass, crop to the wound-only box |
 
-### Model 2: Tissue + Stage
-Shared encoder, two heads:
-- Segmentation head → tissue mask (granulation/slough/necrosis), using
-  `wound-tissue-segmentation`.
-- Classification head → wound stage (1-4), using `wound-stage-classification`.
+Both crop variants reuse Task 1's **already-trained** checkpoint purely for
+inference on PIID images — no new segmentation model, no new training run,
+no dependency on Task 3 (which doesn't exist yet). This is the only new
+engineering needed: a short inference script that runs the saved Task 1
+checkpoint over `datasets/wound-stage-classification/` and writes out two
+additional cropped copies of the dataset.
 
-Hypothesis: tissue features (wound bed depth/composition) help most on
-later stages, where the segmentation and staging tasks are visually most
-similar.
-
-### Baseline
-A stage-only classifier (no shared encoder, no auxiliary segmentation loss)
-trained on the same data, same encoder/backbone, same protocol — the
-control both dual-head models are compared against. Without this, "did
-joint training help" isn't measurable.
-
-## Training data pipeline
-
-The two datasets in each model are **not paired** — different photos,
-different patients, no overlap. Joint training happens at the *optimizer
-step* level, not the *image* level:
-
-```
-each training step:
-    batch_A = next(segmentation_loader)      # image + mask
-    batch_B = next(stage_loader)             # image + stage label
-
-    feats_A = encoder(batch_A.image)
-    feats_B = encoder(batch_B.image)
-
-    loss_seg = seg_loss(seg_head(feats_A), batch_A.mask)
-    loss_cls = cls_loss(cls_head(feats_B), batch_B.label)
-
-    loss = loss_seg + lambda_cls * loss_cls
-    loss.backward()
-    optimizer.step()
-```
-
-Practical issues to handle:
-
-- **Dataset size mismatch** (region 3,476 / tissue 568 / stage 1,091): wrap
-  the smaller loader in `itertools.cycle` so it never runs dry; let the
-  larger dataset define one epoch's length.
-- **Loss scale mismatch**: segmentation loss (CE+Dice, as in
-  `task_1/src/losses.py`) and classification loss (cross-entropy over 4
-  classes) aren't naturally on the same scale — `lambda_cls` needs tuning
-  empirically (start at 1.0, adjust based on validation staging accuracy
-  vs. segmentation mIoU both moving sensibly).
+Hypothesis, carried over from the original field-of-view finding: the wide
+crop should help early stages (1-2), where the signal is subtle skin change
+best read with context; the tight crop should help, or at least not hurt,
+late stages (3-4), where the wound bed already fills most of the raw frame
+anyway; and if neither crop beats raw, that itself is a usable negative
+result — it says stage classification doesn't benefit from localization,
+which is worth knowing before anyone proposes chaining it onto Task 1 in a
+future pipeline revision.
 
 ## Evaluation plan
 
-- Stage classification: accuracy, macro-F1, confusion matrix (4 classes,
-  likely imbalanced per the dataset README counts: 230/313/275/273).
-- Segmentation head: same mIoU/mDice protocol as task_1, mostly as a sanity
-  check that the auxiliary task is actually learning something, not the
-  primary metric of interest.
-- Primary comparison: baseline stage-only accuracy vs. Model 1 vs. Model 2,
-  broken down **per stage** to check whether the region/tissue pairing
-  helps the stage range it was hypothesized to help (early vs. late).
+- Accuracy, macro-F1, and confusion matrix per variant (4 classes, imbalance
+  per the dataset README: 230/313/275/273).
+- Primary comparison: raw vs. wide-crop vs. tight-crop accuracy, broken down
+  **per stage**, to check whether cropping helps the stage range it's
+  hypothesized to help (early vs. late) rather than just reading off one
+  overall accuracy number.
+- Same train/eval protocol (split, seed, epochs, optimiser) across all three
+  variants, so any difference is attributable to the input crop and nothing
+  else.
 
 ## Open questions (resolve during implementation)
 
-- Which architecture/encoder to use for the shared trunk — reuse task_1's
-  best performer (U-Net + MiT-B2) as a starting point, or pick something
-  lighter given the smaller datasets?
-- Split protocol for the two new datasets (k-fold like task_1, or a single
-  held-out split given the 1-week timeline)?
-- Exact value/schedule for `lambda_cls` — fixed, or annealed during
-  training?
-- How to structure the code: new `task_2/` (tissue+stage) and `task_3/`
-  (region+stage) dirs, or one shared multi-task package since the training
-  loop structure is identical between the two models?
+- Margin for the wide crop (fixed pixel/percentage padding around the
+  wound+skin box) — needs a value, not just "some margin".
+- Split protocol for `wound-stage-classification` (k-fold like task_1, or a
+  single held-out split).
+- Whether to report per-variant results from a single run or average over
+  folds/seeds, given this is now a much smaller experiment than the dropped
+  dual-head plan and there's time budget to do it properly.
 
 ## Timeline
 
-Target: implemented and running within 1 week of 2026-09-30.
+Much smaller scope than the dropped proposal: one inference pass with an
+existing checkpoint, three ordinary classifier training runs. Target:
+results in hand well inside the 1-month window.

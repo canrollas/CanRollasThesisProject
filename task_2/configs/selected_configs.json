@@ -1,0 +1,82 @@
+[
+  {
+    "config_id": "manet__mit_b2__imagenet",
+    "architecture": "manet",
+    "encoder": "mit_b2",
+    "weights": "imagenet",
+    "params_m": 34.972,
+    "paper_miou": 0.7263
+  },
+  {
+    "config_id": "unet__mit_b1__imagenet",
+    "architecture": "unet",
+    "encoder": "mit_b1",
+    "weights": "imagenet",
+    "params_m": 16.432,
+    "paper_miou": 0.7203
+  },
+  {
+    "config_id": "unet__mit_b2__imagenet",
+    "architecture": "unet",
+    "encoder": "mit_b2",
+    "weights": "imagenet",
+    "params_m": 27.477,
+    "paper_miou": 0.7176
+  },
+  {
+    "config_id": "unet__resnet50__ssl",
+    "architecture": "unet",
+    "encoder": "resnet50",
+    "weights": "ssl",
+    "params_m": 32.521,
+    "paper_miou": 0.7153
+  },
+  {
+    "config_id": "manet__resnet34__imagenet",
+    "architecture": "manet",
+    "encoder": "resnet34",
+    "weights": "imagenet",
+    "params_m": 31.784,
+    "paper_miou": 0.7153
+  },
+  {
+    "config_id": "deeplabv3__resnet50__swsl",
+    "architecture": "deeplabv3",
+    "encoder": "resnet50",
+    "weights": "swsl",
+    "params_m": 39.634,
+    "paper_miou": 0.7148
+  },
+  {
+    "config_id": "unet__resnet34__imagenet",
+    "architecture": "unet",
+    "encoder": "resnet34",
+    "weights": "imagenet",
+    "params_m": 24.437,
+    "paper_miou": 0.7135
+  },
+  {
+    "config_id": "deeplabv3plus__mit_b3__imagenet",
+    "architecture": "deeplabv3plus",
+    "encoder": "mit_b3",
+    "weights": "imagenet",
+    "params_m": 45.225,
+    "paper_miou": 0.7131
+  },
+  {
+    "config_id": "unetplusplus__resnet50__imagenet",
+    "architecture": "unetplusplus",
+    "encoder": "resnet50",
+    "weights": "imagenet",
+    "params_m": 48.986,
+    "paper_miou": 0.7119
+  },
+  {
+    "config_id": "linknet__resnet34__imagenet",
+    "architecture": "linknet",
+    "encoder": "resnet34",
+    "weights": "imagenet",
+    "params_m": 21.772,
+    "paper_miou": 0.7114
+  }
+]
