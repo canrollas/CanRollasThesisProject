@@ -152,6 +152,11 @@ python run_ablation.py --configs unet__mit_b2__imagenet,manet__mit_b2__imagenet
 python run_ablation.py --smoke     # 1 config, 1 fold, 2 epochs — sanity check
 ```
 
+[`task_2/colab_ablation.ipynb`](task_2/colab_ablation.ipynb) is a ready-to-run
+Colab notebook: mounts Drive, clones/pulls this repo, unzips the dataset,
+redirects checkpoints/results/samples to Drive for persistence across
+sessions, and previews the saved sample panels inline.
+
 ## Roadmap
 
 - [x] Task 1: wound region segmentation — architecture/encoder ablation, 3-fold CV
