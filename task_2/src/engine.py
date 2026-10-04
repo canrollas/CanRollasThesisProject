@@ -40,7 +40,7 @@ def run_epoch(model, loader, criterion, device, head, num_classes, optimizer=Non
 
 
 def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_min_factor,
-        head, num_classes=4, patience=None, log_prefix="", checkpoint_path=None, resume_path=None):
+        head, num_classes=4, log_prefix="", checkpoint_path=None, resume_path=None):
     model.to(device)
     criterion = build_loss(head, num_classes)
     optimizer = AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -49,7 +49,6 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
     start_epoch = 1
     best_macro_f1 = -1.0
     best_state = None
-    epochs_without_improvement = 0
 
     if resume_path is not None and resume_path.exists():
         try:
@@ -60,7 +59,6 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
             start_epoch = ckpt["epoch"] + 1
             best_macro_f1 = ckpt["best_macro_f1"]
             best_state = ckpt["best_state"]
-            epochs_without_improvement = ckpt.get("epochs_without_improvement", 0)
             print(f"{log_prefix} resuming from epoch {start_epoch}/{epochs} (best={best_macro_f1:.4f})", flush=True)
         except Exception as exc:  # noqa: BLE001 - a truncated/corrupt checkpoint (killed mid-write) shouldn't be fatal
             print(f"{log_prefix} resume checkpoint unreadable ({exc}), starting from epoch 1", flush=True)
@@ -76,16 +74,12 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
         if val_stats["macro_f1"] > best_macro_f1:
             best_macro_f1 = val_stats["macro_f1"]
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
-            epochs_without_improvement = 0
-        else:
-            epochs_without_improvement += 1
 
         print(
             f"{log_prefix} epoch {epoch}/{epochs} "
             f"train_loss={train_stats['loss']:.4f} val_loss={val_stats['loss']:.4f} "
             f"val_acc={val_stats['accuracy']:.4f} val_f1={val_stats['macro_f1']:.4f} "
-            f"val_qwk={val_stats['qwk']:.4f} best_f1={best_macro_f1:.4f} "
-            f"no_improve={epochs_without_improvement} time={elapsed:.1f}s",
+            f"val_qwk={val_stats['qwk']:.4f} best_f1={best_macro_f1:.4f} time={elapsed:.1f}s",
             flush=True,
         )
 
@@ -98,13 +92,8 @@ def fit(model, train_loader, val_loader, device, epochs, lr, weight_decay, eta_m
                 "scheduler_state": scheduler.state_dict(),
                 "best_macro_f1": best_macro_f1,
                 "best_state": best_state,
-                "epochs_without_improvement": epochs_without_improvement,
             }, tmp_path)
             tmp_path.replace(resume_path)
-
-        if patience is not None and epochs_without_improvement >= patience:
-            print(f"{log_prefix} early stopping: no val_f1 improvement for {patience} epochs", flush=True)
-            break
 
     if best_state is not None:
         model.load_state_dict(best_state)

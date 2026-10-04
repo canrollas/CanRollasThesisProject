@@ -126,7 +126,7 @@ def main():
                     model, train_loader, val_loader, device,
                     epochs=epochs, lr=base_cfg["lr"], weight_decay=base_cfg["weight_decay"],
                     eta_min_factor=base_cfg["eta_min_factor"],
-                    head=cfg["head"], num_classes=num_classes, patience=base_cfg.get("patience"),
+                    head=cfg["head"], num_classes=num_classes,
                     log_prefix=f"[{cfg['config_id']} fold{fold_idx}]",
                     checkpoint_path=checkpoint_path,
                     resume_path=resume_path,
