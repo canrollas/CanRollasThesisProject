@@ -22,8 +22,8 @@ The work is split into three tasks, each backed by its own dataset:
 | # | Task | Type | Status |
 |---|------|------|--------|
 | 1 | Wound region segmentation (wound / skin / background) | Semantic segmentation | ✅ Implemented — [`task_1/`](task_1) |
-| 2 | Wound tissue segmentation (slough, necrosis, granulation, ...) | Semantic segmentation | ✅ Implemented — [`task_2/`](task_2) |
-| 3 | Wound stage classification (Stage 1–4) | Image classification | 🔜 Planned |
+| 2 | Wound stage classification (Stage 1–4) | Image classification | 🚧 Scaffolded — [`task_2/`](task_2) (pending run) |
+| 3 | Wound tissue segmentation (slough, necrosis, granulation, ...) | Semantic segmentation | ✅ Implemented — [`task_3/`](task_3) |
 
 ## Repository structure
 
@@ -37,7 +37,13 @@ The work is split into three tasks, each backed by its own dataset:
 │   ├── check_compatibility.py  # Resolves the architecture/encoder grid into valid configs
 │   ├── run_ablation.py         # Trains + evaluates every (config, fold) combination
 │   └── run_efficiency.py       # Measures params and inference latency per config
-└── task_2/              # Wound tissue segmentation pipeline (top-10 configs, 3-fold)
+├── task_2/              # Wound stage classification pipeline (encoder x head ablation, 3-fold)
+│   ├── configs/         # Encoder x head grid (softmax vs CORN ordinal) + training hyperparameters
+│   ├── src/             # Dataset, models (SMP/timm backbones + softmax/CORN heads), training engine
+│   ├── build_grid.py           # Resolves configs/grid.yaml into configs/resolved_grid.json
+│   ├── run_ablation.py         # Trains + evaluates every (config, fold) combination
+│   └── run_efficiency.py       # Measures params and inference latency per config
+└── task_3/              # Wound tissue segmentation pipeline (top-10 configs, 3-fold)
     ├── configs/         # Hand-picked top-10 (architecture, encoder, weights) + training hyperparameters
     ├── src/             # Dataset, models, void-aware losses/metrics, training engine
     ├── build_selected_configs.py  # Resolves configs/selected.yaml into selected_configs.json
@@ -106,12 +112,63 @@ After every completed `(config, fold)`, a 3-panel PNG (image / ground truth
 / prediction overlay) is saved to `results/samples/`, so segmentation
 quality can be checked visually without re-running inference.
 
-[`task_1/colab_ablation.ipynb`](task_1/colab_ablation.ipynb) is a ready-to-run
+[`task_1/task1_colab_ablation.ipynb`](task_1/task1_colab_ablation.ipynb) is a ready-to-run
 Colab notebook: mounts Drive, clones/pulls this repo, unzips the dataset,
 redirects checkpoints/results/samples to Drive for persistence across
 sessions, and previews the saved sample panels inline.
 
-## Task 2 — Wound Tissue Segmentation
+## Task 2 — Wound Stage Classification
+
+Ablation over **backbone encoder × classification head**: every encoder is
+trained once with a plain nominal softmax head and once with a CORN ordinal
+head (Shi et al., 2022), under identical conditions, to test whether treating
+Stage 1–4 as an ordered label (rather than four unrelated classes) improves
+results — expected to show up mainly in the ordinal-aware metrics (MAE, QWK)
+rather than raw accuracy.
+
+- **Encoders:** ResNet-{18,34,50}, EfficientNet-{B0,B3,B4}, MobileNetV2,
+  DenseNet121, ResNeXt50, MiT-{B1,B2,B3} (same family as Task 1, for
+  cross-task comparability), plus ConvNeXtV2-Tiny — 13 encoders × 2 heads =
+  26 configs
+- **Heads:** softmax (baseline, `nn.CrossEntropyLoss`) vs. CORN ordinal
+  regression (`coral_pytorch.losses.corn_loss`) — same backbone, same
+  training protocol, only the final layer and loss differ
+- **Evaluation:** 3-fold cross-validation, **stratified per stage** (each
+  fold keeps roughly the dataset's 230/313/275/273 stage balance); accuracy,
+  macro-F1, MAE (mean absolute stage-index error), and QWK (quadratic
+  weighted kappa) per config
+- **Augmentation:** horizontal/vertical flip, 90/180/270° rotation (no
+  photometric augmentation — wound colour is diagnostically meaningful, same
+  rationale as Task 3)
+
+### Reproducing
+
+```bash
+cd task_2
+python -m venv .venv && source .venv/bin/activate   # or reuse task_1/.venv
+pip install -r requirements.txt
+
+python build_grid.py       # resolves configs/grid.yaml -> configs/resolved_grid.json
+python run_ablation.py     # trains + evaluates every (config, fold) -> results/ablation_results.csv
+python run_efficiency.py   # params + latency per config -> results/efficiency.csv
+```
+
+Same interrupt/resume behavior as `task_1/run_ablation.py`:
+
+```bash
+python run_ablation.py --configs resnet34__softmax,resnet34__corn
+python run_ablation.py --smoke     # 1 config, 1 fold, 2 epochs — sanity check
+```
+
+[`task_2/task2_colab_ablation.ipynb`](task_2/task2_colab_ablation.ipynb) is a
+ready-to-run Colab notebook: mounts Drive, clones/pulls this repo, unzips the
+dataset, redirects checkpoints/results to Drive for persistence across
+sessions, and previews the ablation summary leaderboard inline.
+
+> Not yet run end-to-end — the pipeline is scaffolded (dataset, models,
+> losses, metrics, ablation runner) but no results exist yet.
+
+## Task 3 — Wound Tissue Segmentation
 
 Re-runs the 10 best-performing configurations from the paper's 37-config
 intra-wound tissue segmentation benchmark (`Deep-Learning-Konf.pdf`, Table 5)
@@ -123,7 +180,7 @@ compute to the full 37-config grid.
   U-Net&MiT-B1, U-Net&MiT-B2, U-Net&ResNet-50(SSL), MA-Net&ResNet-34,
   DeepLabV3&ResNet-50(SWSL), U-Net&ResNet-34, DeepLabV3+&MiT-B3,
   U-Net++&ResNet-50, LinkNet&ResNet-34 — see
-  [`task_2/configs/selected.yaml`](task_2/configs/selected.yaml)
+  [`task_3/configs/selected.yaml`](task_3/configs/selected.yaml)
 - **Classes:** granulation, slough/fibrin, necrosis. `outside_wound`,
   `skin_remnant`, `tendon`, and `bone` pixels are treated as void (excluded
   from loss and metrics — this dataset has a `bone` class the paper's
@@ -136,7 +193,7 @@ compute to the full 37-config grid.
 ### Reproducing
 
 ```bash
-cd task_2
+cd task_3
 python -m venv .venv && source .venv/bin/activate   # or reuse task_1/.venv
 pip install -r requirements.txt
 
@@ -152,7 +209,7 @@ python run_ablation.py --configs unet__mit_b2__imagenet,manet__mit_b2__imagenet
 python run_ablation.py --smoke     # 1 config, 1 fold, 2 epochs — sanity check
 ```
 
-[`task_2/colab_ablation.ipynb`](task_2/colab_ablation.ipynb) is a ready-to-run
+[`task_3/task3_colab_ablation.ipynb`](task_3/task3_colab_ablation.ipynb) is a ready-to-run
 Colab notebook: mounts Drive, clones/pulls this repo, unzips the dataset,
 redirects checkpoints/results/samples to Drive for persistence across
 sessions, and previews the saved sample panels inline.
@@ -160,8 +217,8 @@ sessions, and previews the saved sample panels inline.
 ## Roadmap
 
 - [x] Task 1: wound region segmentation — architecture/encoder ablation, 3-fold CV
-- [x] Task 2: wound tissue segmentation — top-10 config re-run, 3-fold CV
-- [ ] Task 3: wound stage classification
+- [ ] Task 2: wound stage classification — encoder x head (softmax/CORN) ablation scaffolded, pending run
+- [x] Task 3: wound tissue segmentation — top-10 config re-run, 3-fold CV
 - [ ] Cross-task pipeline (region → tissue → stage)
 
 ## Author

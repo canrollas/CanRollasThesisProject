@@ -4,7 +4,7 @@
 
 The dual-head shared-encoder idea below (Model 1 / Model 2 / baseline, joint
 training) is **dropped**. It doesn't fit a 1-month timeline on top of the
-rest of the thesis: Task 2 (tissue) and Task 3 (stage) don't have their own
+rest of the thesis: Task 3 (tissue) and Task 2 (stage) don't have their own
 baseline models trained yet, the shared-trunk design still had open
 questions (architecture, `lambda_cls`, split protocol), and joint training
 is inherently iterative — no guarantee the first attempt shows anything.
@@ -57,7 +57,7 @@ see.
 
 Both crop variants reuse Task 1's **already-trained** checkpoint purely for
 inference on PIID images — no new segmentation model, no new training run,
-no dependency on Task 3 (which doesn't exist yet). This is the only new
+no dependency on Task 2 (which doesn't exist yet). This is the only new
 engineering needed: a short inference script that runs the saved Task 1
 checkpoint over `datasets/wound-stage-classification/` and writes out two
 additional cropped copies of the dataset.

@@ -10,6 +10,9 @@ task_1/results/
 task_1/configs/resolved_grid.json
 task_2/checkpoints/
 task_2/results/
+task_2/configs/resolved_grid.json
+task_3/checkpoints/
+task_3/results/
 
 # Python
 __pycache__/

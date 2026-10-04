@@ -8,7 +8,7 @@ def count_params_m(model):
 
 
 @torch.no_grad()
-def measure_latency_ms(model, device, image_size=224, num_warmup=5, num_runs=20):
+def measure_latency_ms(model, device, image_size=512, num_warmup=5, num_runs=20):
     model.eval().to(device)
     dummy = torch.randn(1, 3, image_size, image_size, device=device)
 

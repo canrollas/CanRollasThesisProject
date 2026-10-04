@@ -1,0 +1,24 @@
+# Encoder x head cross-product for the wound stage classification ablation.
+# Encoders reuse task_1's backbone family (consistency across the thesis's
+# three tasks) plus convnextv2_tiny as a modern addition. Heads compare plain
+# nominal classification (softmax) against CORN ordinal regression (Shi et
+# al., 2022) -- stage 1-4 is an ordered label, so CORN is expected to help
+# on the ordinal-aware metrics (mae, qwk) even where plain accuracy ties.
+encoders:
+  - {name: resnet18, family: resnet}
+  - {name: resnet34, family: resnet}
+  - {name: resnet50, family: resnet}
+  - {name: efficientnet-b0, family: efficientnet}
+  - {name: efficientnet-b3, family: efficientnet}
+  - {name: efficientnet-b4, family: efficientnet}
+  - {name: mobilenet_v2, family: mobilenet}
+  - {name: densenet121, family: densenet}
+  - {name: resnext50_32x4d, family: resnext}
+  - {name: mit_b1, family: mit}
+  - {name: mit_b2, family: mit}
+  - {name: mit_b3, family: mit}
+  - {name: convnextv2_tiny, family: convnext}
+
+heads: [softmax, corn]
+
+default_weights: imagenet
