@@ -75,10 +75,25 @@ class CornHead(nn.Module):
 HEAD_MAP = {"softmax": SoftmaxHead, "corn": CornHead}
 
 
-def build_model(encoder, weights, head, num_classes=4):
+class Neck(nn.Module):
+    """LayerNorm + dropout between the pooled backbone features and the
+    classification head -- regularisation the head previously had none of,
+    on a dataset (1091 images) small enough for that to matter."""
+
+    def __init__(self, dim, dropout):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, x):
+        return self.drop(self.norm(x))
+
+
+def build_model(encoder, weights, head, num_classes=4, dropout=0.2):
     backbone = Backbone(encoder, weights)
+    neck = Neck(backbone.out_dim, dropout)
     head_module = HEAD_MAP[head](backbone.out_dim, num_classes)
-    return nn.Sequential(backbone, head_module)
+    return nn.Sequential(backbone, neck, head_module)
 
 
 def count_params_m(model):

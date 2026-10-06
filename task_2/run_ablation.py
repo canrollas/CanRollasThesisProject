@@ -116,7 +116,8 @@ def main():
                     data_root, fold, base_cfg, batch_size, args.workers, args.smoke
                 )
 
-                model = build_model(cfg["encoder"], cfg["weights"], cfg["head"], num_classes=num_classes)
+                model = build_model(cfg["encoder"], cfg["weights"], cfg["head"], num_classes=num_classes,
+                                    dropout=base_cfg.get("head_dropout", 0.2))
                 params_m = count_params_m(model)
                 checkpoint_path = checkpoint_dir / f"{cfg['config_id']}_fold{fold_idx}.pt"
                 resume_path = checkpoint_dir / f"{cfg['config_id']}_fold{fold_idx}.resume.pt"
