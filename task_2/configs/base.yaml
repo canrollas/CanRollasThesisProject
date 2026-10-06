@@ -2,24 +2,15 @@ image_size: 224
 batch_size: 16
 
 lr: 0.0001
-weight_decay: 0.05
+weight_decay: 0.00001
 epochs: 100
 eta_min_factor: 0.01
-head_dropout: 0.2
 
 augment:
   hflip_p: 0.5
   vflip_p: 0.5
   rotate_p: 0.7
   rotate_angles: [90, 180, 270]
-  affine_p: 0.8
-  max_rotate_deg: 25
-  scale_range: [0.85, 1.18]
-  translate_frac: 0.07
-  brightness_range: [0.82, 1.18]
-  contrast_range: [0.82, 1.18]
-  hue_p: 0.3
-  hue_shift_deg: 8
 
 num_folds: 3
 val_fraction: 0.1
