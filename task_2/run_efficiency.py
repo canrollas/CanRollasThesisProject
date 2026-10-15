@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Measures params(M) and single-image inference latency (ms) for each config
-in configs/resolved_grid.json. Run after build_grid.py.
+"""Measures params(M) and single-image inference latency (ms) for each of
+the 10 selected configs in configs/selected_configs.json. Run after
+build_selected_configs.py.
 """
 import csv
 import json
@@ -17,9 +18,9 @@ from src.utils import get_device, load_yaml  # noqa: E402
 
 def main():
     base_cfg = load_yaml(TASK_DIR / "configs" / "base.yaml")
-    resolved_path = TASK_DIR / "configs" / "resolved_grid.json"
+    resolved_path = TASK_DIR / "configs" / "selected_configs.json"
     if not resolved_path.exists():
-        raise SystemExit("configs/resolved_grid.json not found — run build_grid.py first")
+        raise SystemExit("configs/selected_configs.json not found — run build_selected_configs.py first")
     grid = json.loads(resolved_path.read_text())
 
     device = get_device()
@@ -30,16 +31,17 @@ def main():
 
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(
-            f, fieldnames=["config_id", "encoder", "head", "weights", "params_m", "latency_ms"]
+            f, fieldnames=["config_id", "architecture", "encoder", "weights", "params_m", "latency_ms"]
         )
         writer.writeheader()
         for cfg in grid:
-            model = build_model(cfg["encoder"], None, cfg["head"], num_classes=num_classes)
+            model = build_model(cfg["architecture"], cfg["encoder"], None, num_classes=num_classes)
             params_m = count_params_m(model)
             latency_ms = measure_latency_ms(model, device, image_size=base_cfg["image_size"])
             row = {
-                "config_id": cfg["config_id"], "encoder": cfg["encoder"], "head": cfg["head"],
-                "weights": cfg["weights"], "params_m": round(params_m, 3), "latency_ms": round(latency_ms, 2),
+                "config_id": cfg["config_id"], "architecture": cfg["architecture"],
+                "encoder": cfg["encoder"], "weights": cfg["weights"],
+                "params_m": round(params_m, 3), "latency_ms": round(latency_ms, 2),
             }
             writer.writerow(row)
             print(row, flush=True)

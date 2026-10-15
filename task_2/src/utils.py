@@ -29,8 +29,9 @@ def get_device():
 
 
 RESULT_FIELDS = [
-    "config_id", "encoder", "head", "weights", "fold",
-    "params_m", "accuracy", "macro_f1", "mae", "qwk", "train_time_s",
+    "config_id", "architecture", "encoder", "weights", "fold",
+    "params_m", "miou", "mdice", "iou_granulation", "iou_slough", "iou_necrosis",
+    "dice_granulation", "dice_slough", "dice_necrosis", "train_time_s",
 ]
 
 
@@ -55,7 +56,7 @@ def append_result(results_csv, row):
         writer.writerow(row)
 
 
-FAILURE_FIELDS = ["config_id", "encoder", "head", "weights", "fold", "error", "timestamp"]
+FAILURE_FIELDS = ["config_id", "architecture", "encoder", "weights", "fold", "error", "timestamp"]
 
 
 def append_failure(failures_csv, row):
@@ -71,14 +72,17 @@ def append_failure(failures_csv, row):
         writer.writerow(row)
 
 
-SUMMARY_NUMERIC_FIELDS = ["accuracy", "macro_f1", "mae", "qwk", "train_time_s"]
+SUMMARY_NUMERIC_FIELDS = [
+    "miou", "mdice", "iou_granulation", "iou_slough", "iou_necrosis",
+    "dice_granulation", "dice_slough", "dice_necrosis", "train_time_s",
+]
 
 
 def write_summary(results_csv, summary_csv):
-    """Rewrites a per-config mean+-std rollup over completed folds. Safe to
-    call after every fold -- it re-derives everything from results_csv, so an
-    interrupted run leaves a summary consistent with whatever folds actually
-    finished.
+    """Rewrites a per-config mean+-std rollup over completed folds, matching
+    the paper's Table 5 reporting format. Safe to call after every fold —
+    it re-derives everything from results_csv, so an interrupted run leaves
+    a summary consistent with whatever folds actually finished.
     """
     results_path = Path(results_csv)
     if not results_path.exists():
@@ -98,8 +102,8 @@ def write_summary(results_csv, summary_csv):
         first = group_rows[0]
         summary = {
             "config_id": config_id,
+            "architecture": first["architecture"],
             "encoder": first["encoder"],
-            "head": first["head"],
             "weights": first["weights"],
             "params_m": first["params_m"],
             "n_folds": len(group_rows),
@@ -110,7 +114,7 @@ def write_summary(results_csv, summary_csv):
             summary[f"{field}_std"] = round(float(values.std()), 4)
         summary_rows.append(summary)
 
-    summary_rows.sort(key=lambda r: r["macro_f1_mean"], reverse=True)
+    summary_rows.sort(key=lambda r: r["miou_mean"], reverse=True)
 
     summary_path = Path(summary_csv)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
