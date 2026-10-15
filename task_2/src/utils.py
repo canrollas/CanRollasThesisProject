@@ -30,8 +30,10 @@ def get_device():
 
 RESULT_FIELDS = [
     "config_id", "architecture", "encoder", "weights", "fold",
-    "params_m", "miou", "mdice", "iou_granulation", "iou_slough", "iou_necrosis",
-    "dice_granulation", "dice_slough", "dice_necrosis", "train_time_s",
+    "params_m", "miou", "mdice",
+    "iou_granulation", "iou_slough", "iou_necrosis", "iou_tendon", "iou_bone",
+    "dice_granulation", "dice_slough", "dice_necrosis", "dice_tendon", "dice_bone",
+    "train_time_s",
 ]
 
 
@@ -73,8 +75,10 @@ def append_failure(failures_csv, row):
 
 
 SUMMARY_NUMERIC_FIELDS = [
-    "miou", "mdice", "iou_granulation", "iou_slough", "iou_necrosis",
-    "dice_granulation", "dice_slough", "dice_necrosis", "train_time_s",
+    "miou", "mdice",
+    "iou_granulation", "iou_slough", "iou_necrosis", "iou_tendon", "iou_bone",
+    "dice_granulation", "dice_slough", "dice_necrosis", "dice_tendon", "dice_bone",
+    "train_time_s",
 ]
 
 

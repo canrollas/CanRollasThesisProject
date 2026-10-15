@@ -24,15 +24,16 @@ from src.utils import load_yaml  # noqa: E402
 
 def main():
     selected = load_yaml(TASK_DIR / "configs" / "selected.yaml")["configs"]
+    num_classes = len(load_yaml(TASK_DIR / "configs" / "base.yaml")["classes"])
 
     resolved = []
     for entry in selected:
         arch, encoder, weights = entry["architecture"], entry["encoder"], entry["weights"]
-        model = build_model(arch, encoder, None, num_classes=3)
+        model = build_model(arch, encoder, None, num_classes=num_classes)
         model.eval()
         with torch.no_grad():
             out = model(torch.randn(1, 3, 256, 256))
-        assert out.shape == (1, 3, 256, 256), f"unexpected output shape {tuple(out.shape)}"
+        assert out.shape == (1, num_classes, 256, 256), f"unexpected output shape {tuple(out.shape)}"
 
         resolved.append({
             "config_id": f"{arch}__{encoder}__{weights}",

@@ -12,7 +12,7 @@
     "architecture": "unet",
     "encoder": "mit_b1",
     "weights": "imagenet",
-    "params_m": 16.432,
+    "params_m": 16.433,
     "paper_miou": 0.7203
   },
   {
@@ -20,7 +20,7 @@
     "architecture": "unet",
     "encoder": "mit_b2",
     "weights": "imagenet",
-    "params_m": 27.477,
+    "params_m": 27.478,
     "paper_miou": 0.7176
   },
   {
@@ -28,7 +28,7 @@
     "architecture": "unet",
     "encoder": "resnet50",
     "weights": "ssl",
-    "params_m": 32.521,
+    "params_m": 32.522,
     "paper_miou": 0.7153
   },
   {
@@ -44,7 +44,7 @@
     "architecture": "deeplabv3",
     "encoder": "resnet50",
     "weights": "swsl",
-    "params_m": 39.634,
+    "params_m": 39.635,
     "paper_miou": 0.7148
   },
   {
@@ -60,7 +60,7 @@
     "architecture": "deeplabv3plus",
     "encoder": "mit_b3",
     "weights": "imagenet",
-    "params_m": 45.225,
+    "params_m": 45.226,
     "paper_miou": 0.7131
   },
   {

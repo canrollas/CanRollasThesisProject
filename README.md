@@ -130,10 +130,11 @@ compute to the full 37-config grid.
   DeepLabV3&ResNet-50(SWSL), U-Net&ResNet-34, DeepLabV3+&MiT-B3,
   U-Net++&ResNet-50, LinkNet&ResNet-34 — see
   [`task_2/configs/selected.yaml`](task_2/configs/selected.yaml)
-- **Classes:** granulation, slough/fibrin, necrosis. `outside_wound`,
-  `skin_remnant`, `tendon`, and `bone` pixels are treated as void (excluded
-  from loss and metrics — this dataset has a `bone` class the paper's
-  version didn't annotate)
+- **Classes:** granulation, slough/fibrin, necrosis, tendon, bone — the last
+  two aren't in the paper's original 3-class setup, but this dataset
+  annotates them, so they're trained and scored like the rest.
+  `outside_wound` and `skin_remnant` pixels are treated as void (excluded
+  from loss and metrics)
 - **Evaluation:** 3-fold cross-validation (paper protocol: shuffle once with
   a fixed seed, split into 3 consecutive chunks), mIoU / mDice per class
 - **Loss:** combined cross-entropy + Dice, both void-aware (`ignore_index`)

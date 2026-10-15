@@ -21,10 +21,10 @@ val_fraction: 0.1
 seed: 42
 
 # Fixed class order: index must match src/dataset.py CLASS_ORDER and
-# src/utils.py RESULT_FIELDS (granulation, slough/fibrin, necrosis). Pixels
-# labelled outside_wound, skin_remnant, tendon, or bone are void (see
+# src/utils.py RESULT_FIELDS (granulation, slough/fibrin, necrosis, tendon,
+# bone). Pixels labelled outside_wound or skin_remnant are void (see
 # src/dataset.py VOID_CLASSES) and excluded from both loss and metrics.
-classes: [granulation, slough, necrosis]
+classes: [granulation, slough, necrosis, tendon, bone]
 void_label: 255
 
 checkpoint_dir: checkpoints

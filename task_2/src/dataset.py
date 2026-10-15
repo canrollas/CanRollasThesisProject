@@ -13,15 +13,15 @@ IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 VOID_LABEL = 255
 
 # Fixed class order: index must match configs/base.yaml "classes" and
-# src/utils.py RESULT_FIELDS (granulation, slough/fibrin, necrosis).
-CLASS_ORDER = ["granulation", "slough", "necrosis"]
+# src/utils.py RESULT_FIELDS (granulation, slough/fibrin, necrosis, tendon,
+# bone).
+CLASS_ORDER = ["granulation", "slough", "necrosis", "tendon", "bone"]
 
 # Present in datasets/wound-tissue-segmentation/color-mappings.json but
-# excluded from training/evaluation: outside_wound and skin_remnant per the
-# paper (too few images for skin_remnant/tendon to learn reliably); bone is
-# this project's dataset having a 4th rare category (33/612 images) the
-# paper's version didn't include, treated the same way for consistency.
-VOID_CLASSES = ["outside_wound", "skin_remnant", "tendon", "bone"]
+# excluded from training/evaluation: outside_wound and skin_remnant mark
+# pixels outside the region of interest (background / intact skin), per the
+# dataset README.
+VOID_CLASSES = ["outside_wound", "skin_remnant"]
 
 
 def _hex_to_rgb(hexcolor):

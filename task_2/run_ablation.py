@@ -165,14 +165,13 @@ def main():
                     "params_m": round(params_m, 3),
                     "miou": round(test_stats["miou"], 4),
                     "mdice": round(test_stats["mdice"], 4),
-                    "iou_granulation": round(test_stats["iou_per_class"][0], 4),
-                    "iou_slough": round(test_stats["iou_per_class"][1], 4),
-                    "iou_necrosis": round(test_stats["iou_per_class"][2], 4),
-                    "dice_granulation": round(test_stats["dice_per_class"][0], 4),
-                    "dice_slough": round(test_stats["dice_per_class"][1], 4),
-                    "dice_necrosis": round(test_stats["dice_per_class"][2], 4),
                     "train_time_s": round(train_time_s, 1),
                 }
+                for class_name, iou, dice in zip(
+                    base_cfg["classes"], test_stats["iou_per_class"], test_stats["dice_per_class"]
+                ):
+                    row[f"iou_{class_name}"] = round(iou, 4)
+                    row[f"dice_{class_name}"] = round(dice, 4)
                 append_result(results_csv, row)
                 write_summary(results_csv, results_csv.with_name("ablation_summary.csv"))
                 print(f"[{cfg['config_id']} fold{fold_idx}] DONE test_miou={row['miou']:.4f}", flush=True)
