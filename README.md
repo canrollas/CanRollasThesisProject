@@ -23,7 +23,7 @@ The work is split into three tasks, each backed by its own dataset:
 |---|------|------|--------|
 | 1 | Wound region segmentation (wound / skin / background) | Semantic segmentation | ✅ Implemented — [`task_1/`](task_1) |
 | 2 | Wound tissue segmentation (slough, necrosis, granulation, ...) | Semantic segmentation | ✅ Implemented — [`task_2/`](task_2) |
-| 3 | Wound stage classification (Stage 1–4) | Image classification | 🚧 Scaffolded — [`task_3/`](task_3) (pending run) |
+| 3 | Wound stage classification (Stage 1–4) | Image classification | ✅ Implemented — [`task_3/`](task_3) |
 
 ## Repository structure
 
@@ -211,14 +211,11 @@ ready-to-run Colab notebook: mounts Drive, clones/pulls this repo, unzips the
 dataset, redirects checkpoints/results to Drive for persistence across
 sessions, and previews the ablation summary leaderboard inline.
 
-> Not yet run end-to-end — the pipeline is scaffolded (dataset, models,
-> losses, metrics, ablation runner) but no results exist yet.
-
 ## Roadmap
 
 - [x] Task 1: wound region segmentation — architecture/encoder ablation, 3-fold CV
 - [x] Task 2: wound tissue segmentation — top-10 config re-run, 3-fold CV
-- [ ] Task 3: wound stage classification — encoder x head (softmax/CORN) ablation scaffolded, pending run
+- [x] Task 3: wound stage classification — encoder x head (softmax/CORN) ablation, 3-fold CV
 - [ ] Cross-task pipeline (region → tissue → stage)
 
 ## Author
