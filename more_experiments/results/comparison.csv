@@ -2,3 +2,4 @@ experiment,description,encoder,head,n_folds,accuracy_mean,accuracy_std,macro_f1_
 E1-A,original full-frame RGB (task_3 baseline),mit_b1,corn,3,0.8168,0.0150,0.8182,0.0138,0.9138,0.0164,task_3/results/task_3_outputs/results/ablation_summary.csv
 E1-B,exp-1: skin+wound kept background removed,mit_b1,corn,3,0.7819,0.0157,0.7815,0.0149,0.8935,0.0111,more_experiments/exp/exp1_wound_crop/results/exp1b_summary.csv
 E2,exp-2: wound only kept adaptively dilated,mit_b1,corn,3,0.7837,0.0222,0.7863,0.0214,0.9000,0.0149,more_experiments/exp/exp2_wound_dilated/results/exp2_summary.csv
+E3,exp-3: early fusion RGB + 5 tissue-probability channels (8ch),mit_b1,corn,3,0.7791,0.0126,0.7822,0.0116,0.8997,0.0098,more_experiments/exp/exp3_tissue_channels/results/exp3_summary.csv

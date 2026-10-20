@@ -1,0 +1,2 @@
+config_id,encoder,head,weights,params_m,n_folds,accuracy_mean,accuracy_std,macro_f1_mean,macro_f1_std,mae_mean,mae_std,qwk_mean,qwk_std,train_time_s_mean,train_time_s_std
+mit_b1__corn__exp3_tissue_channels,mit_b1,corn,imagenet,13.169,3,0.7791,0.0126,0.7822,0.0116,0.2246,0.0147,0.8997,0.0098,99.7,1.6673

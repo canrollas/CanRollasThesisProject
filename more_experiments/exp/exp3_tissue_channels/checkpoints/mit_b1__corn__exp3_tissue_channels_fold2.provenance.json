@@ -1,0 +1,19 @@
+{
+  "config_id": "mit_b1__corn__exp3_tissue_channels",
+  "fold": 2,
+  "trained_at_utc": "2026-10-20T19:59:57+00:00",
+  "encoder": "mit_b1",
+  "head": "corn",
+  "in_channels": 8,
+  "pretrained_weights_source": "segmentation_models_pytorch encoder_weights='imagenet'",
+  "first_conv_init": "RGB channels (0-2) copied unchanged from the pretrained 3-channel encoder's first conv; tissue channels (3-7) zero-initialized -- see model.py",
+  "image_size": 224,
+  "batch_size": 16,
+  "epochs": 100,
+  "lr": 0.0001,
+  "weight_decay": 1e-05,
+  "eta_min_factor": 0.01,
+  "seed": 42,
+  "data_root": "/content/CanRollasThesisProject/more_experiments/exp/exp3_tissue_channels/../../../datasets/wound-staging-masks-exp-3",
+  "params_m": 13.169
+}

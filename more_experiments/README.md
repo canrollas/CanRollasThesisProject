@@ -197,9 +197,22 @@ section 1 above, not assumed for exp-3). Each training checkpoint also
 gets a `.provenance.json` sidecar (config, pretrained-weight source,
 first-conv init method).
 
-Not yet trained for real (smoke-tested only) — `colab_train.ipynb` ready,
-dataset zipped (`datasets/wound-staging-masks-exp-3.zip`, ~144MB) for
-Drive upload.
+**Trained for real** (Colab, corrected zero-init, `batch_size: 16`):
+
+| Metric | E1-A baseline | E1-B exp-1 | E2 exp-2 | **E3 exp-3** |
+|---|---|---|---|---|
+| Accuracy | 0.8168 | 0.7819 | 0.7837 | **0.7791** |
+| Macro F1 | 0.8182 | 0.7815 | 0.7863 | **0.7822** |
+| QWK      | 0.9138 | 0.8935 | 0.9000 | **0.8997** |
+
+Same pattern as exp-1/exp-2: still below the full-frame RGB baseline, by
+a similar margin — concatenating tissue-probability channels at the input
+didn't help, numerically close to exp-2's own result. One more data point
+toward the same conclusion (section 4): adding this derived information
+doesn't straightforwardly improve staging, regardless of which of the
+three ways tried so far (background-mask crop, wound-only crop, early
+fusion with tissue channels) it's added. exp-4's late fusion is the next
+test of whether *how* it's combined (not just *what's* added) matters.
 
 ## 7. exp-4 — late fusion (RGB MiT-B1 + tissue CNN)
 
@@ -240,8 +253,9 @@ RGB backbone by default, and that freezing the RGB backbone actually
 stops its gradients — all pass. Smoke-tested end to end (concat, gated,
 and gated+freeze all run cleanly); not yet trained for real.
 
-**Run order matters for interpretation**: exp-3 (early fusion) also
-hasn't been trained for real yet — both need real 3-fold numbers before
-any "early vs. late fusion" conclusion means anything. `colab_train.ipynb`
-runs concat first, gated only as a follow-up if concat looks promising,
+**exp-3's real numbers are in now** (section 6): accuracy 0.7791, macro
+F1 0.7822, QWK 0.8997 — below the baseline, close to exp-1/exp-2. That's
+the number exp-4's concat run needs to beat for late fusion to look like
+the more promising combination strategy. `colab_train.ipynb` runs concat
+first, gated only as a follow-up if concat looks promising,
 per the brief's own prioritization.
