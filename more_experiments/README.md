@@ -272,3 +272,53 @@ compensating accuracy gain on this data size — not yet enough evidence to
 call `gated` the better choice). First real signal in this chapter that
 *how* RGB and tissue information are combined matters as much as *whether*
 it's added at all.
+
+## 8. exp-5 — residual late fusion (baseline-preserving)
+
+`exp/exp5_residual_fusion/` — `z_final = z_rgb + delta_z`. `z_rgb` comes
+from the **frozen, trained RGB MiT-B1+CORN baseline** loaded per fold
+(unlike exp-4, whose RGB arm was ImageNet-only — no trained baseline
+checkpoint existed locally at the time). `delta_z` comes from exp-4's
+`TissueCNN` + a small residual MLP whose final linear layer is
+zero-initialized, so at construction `delta_z = 0` and the model
+reproduces the baseline's predictions exactly — verified two ways before
+any training is trusted: `scripts/test_residual_model.py`
+(architecture-level, 11 checks, no checkpoint needed) and, in
+`scripts/train.py` itself, against the real loaded checkpoint and real
+data (fails loudly and stops if the fusion model's `z_rgb` doesn't match
+a reference `task_3/src/model.py` instance with the same weights, byte
+for byte). Phase 1 trains only the tissue CNN + residual head — the RGB
+branch (backbone + CORN head) is frozen for the whole run, with real
+early stopping (not just best-checkpoint selection) on validation
+macro-F1.
+
+**Blocked on the RGB baseline checkpoint — now partially unblocked.**
+`task_3`'s own trained `mit_b1__corn` checkpoints were never saved
+locally (section 5's long-standing gap). Fold 1's was provided directly
+and placed at
+`task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold1.pt`; folds
+0 and 2 are still missing. `scripts/train.py` fails loudly with the exact
+`task_3/run_ablation.py --configs mit_b1__corn` command to fix it if a
+fold's checkpoint isn't found, rather than silently substituting ImageNet
+init — this is NOT a re-ablation, just producing the already-characterized
+config's weights, which happen to never have been saved. `colab_train.ipynb`
+automates this: checks `drive/MyDrive/thesis/task_3_outputs/` for existing
+fold checkpoints first, trains only whichever are still missing.
+
+**Fold 1 result (real, converged, not a smoke test):**
+
+| Metric | Fold 1's own baseline | **exp-5 fold 1 (residual fusion)** |
+|---|---|---|
+| Accuracy | 0.8370 | **0.8232** |
+| Macro F1 | 0.8369 | **0.8244** |
+| QWK      | 0.9332 | **0.9262** |
+
+Closer to its baseline than either exp-4 variant got to the overall
+baseline mean — early-stopped at epoch 12 (best at epoch 2). Diagnostics
+confirm the design works as intended: RGB branch logits provably
+unchanged across all of Phase 1 training, the residual-disabled check
+(`delta_z` forced to 0 post-training) reproduces the RGB output exactly,
+and the tissue branch contributes genuinely non-zero corrections after
+training (mean `||delta_z||` 0.0806 on the test batch) rather than
+collapsing back to zero. **Folds 0 and 2 still needed** before a 3-fold
+mean±std can be reported and compared against the baseline/exp-3/exp-4.

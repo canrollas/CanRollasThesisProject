@@ -1,0 +1,2 @@
+config_id,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,early_stopped_at_epoch,train_time_s
+mit_b1__corn__residual_latefusion,mit_b1,corn,baseline_checkpoint,1,13.346,0.8232,0.8244,0.1768,0.9262,12,73.1
