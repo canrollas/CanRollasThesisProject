@@ -1,0 +1,4 @@
+config_id,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,train_time_s
+mit_b1__corn__exp2_wound_dilated,mit_b1,corn,imagenet,0,13.153,0.7652,0.7678,0.2431,0.8888,87.7
+mit_b1__corn__exp2_wound_dilated,mit_b1,corn,imagenet,1,13.153,0.8149,0.8163,0.1851,0.921,86.7
+mit_b1__corn__exp2_wound_dilated,mit_b1,corn,imagenet,2,13.153,0.7711,0.7749,0.2316,0.8902,84.6

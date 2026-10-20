@@ -99,31 +99,62 @@ own layout exactly so `task_3/src` can be reused unmodified):
 - **exp-1** (`exp/exp1_wound_crop/scripts/generate_dataset.py`): keep
   skin+wound, zero out background. Mean kept-area ≈ 97%.
 - **exp-2** (`exp/exp2_wound_dilated/scripts/generate_dataset.py`): keep
-  wound only. Problem: 41/1091 images had zero predicted wound pixels, and
-  small wounds leave the model almost nothing. Fixed with **adaptive
-  dilation**, inversely proportional to original wound size: grow (exact
-  circular/Euclidean growth, not a square kernel) until the region covers
-  ≥8% of the image or a 70px radius cap is hit; if nothing was detected at
-  all, seed a small disk at the image center first, then grow the same way.
-  233/1091 images were grown this way (41 of those from a center seed); none
-  hit the radius cap.
+  wound only, adaptively grown. Two problems with a naive version: (a) a
+  hard cutoff meant already-large wounds got zero surrounding skin at all;
+  (b) growing small/undetected wounds by exact circular distance
+  thresholding produced a suspiciously clean, perfectly round blob -- an
+  artifact a model could learn to key on instead of actual wound shape.
+  Fixed with a `--base-margin-px` skin ring applied to *every* image
+  unconditionally (so there's no cliff at the target threshold), plus any
+  further growth (for small/undetected wounds, up to a target coverage or a
+  70px radius cap) perturbed by smooth low-frequency noise so the boundary
+  reads as organic instead of geometric. 41/1091 images had zero predicted
+  wound pixels and seed from the image center; 124/1091 got extra noisy
+  growth beyond the base margin; none hit the radius cap.
 
 Both scripts read `datasets/wound-staging-masks/` and never touch the
 staging label.
 
-## 4. Experiment training
+## 4. Experiment training — results
 
-`exp/exp1_wound_crop/scripts/train.py` — MiT-B1 + CORN (task_3's confirmed
-best config, `task_3/results/task_3_outputs/results/ablation_summary.csv`),
-trained on `datasets/wound-staging-masks-exp-1/`. Since that dataset has
-the exact same layout as the original, `task_3/src/splits.py`'s own
+`exp/exp1_wound_crop/scripts/train.py` and `exp/exp2_wound_dilated/scripts/train.py`
+— MiT-B1 + CORN (task_3's confirmed best config), trained on
+`datasets/wound-staging-masks-exp-{1,2}/`. Both reuse `task_3/src` wholesale
+(model/losses/engine/metrics/augmentations/splits/utils) — only the data
+content differs. Since both datasets have the exact same layout as the
+original `wound-stage-classification/`, `task_3/src/splits.py`'s own
 `build_folds()` reproduces the **original PIID 3-fold split** exactly (same
-filenames, same seed) — verified by direct comparison before relying on it.
-Smoke-tested end to end (checkpoint + results row written correctly), not
-yet run for real.
+filenames, same seed) — verified by direct comparison, not assumed. Trained
+on Colab, `--batch 16` (matching the baseline's `configs/base.yaml`
+default — an earlier run used `--batch 32`, caught and corrected before
+trusting these numbers, since half as many gradient steps/epoch at 100
+epochs is a real confound, not noise).
 
-`exp/exp2_wound_dilated/` has its dataset but no `train.py` yet — next
-step, same pattern as exp-1 once exp-1's real results are in.
+| Metric | **E1-A** original RGB (`task_3` baseline) | **E1-B** exp-1 (skin+wound) | **E2** exp-2 (wound only, dilated) |
+|---|---|---|---|
+| Accuracy | 0.8168 ± 0.0150 | 0.7819 ± 0.0157 | 0.7837 ± 0.0222 |
+| Macro F1 | 0.8182 ± 0.0138 | 0.7815 ± 0.0149 | 0.7863 ± 0.0214 |
+| QWK      | 0.9138 ± 0.0164 | 0.8935 ± 0.0111 | 0.9000 ± 0.0149 |
+
+(mean ± std over 3 folds; full per-fold rows in each `exp/.../results/*.csv`)
+
+**Finding: both masking variants underperform the original full-frame RGB
+baseline**, consistently, by a similar margin (~3.3pp accuracy, ~1.4–2.0pp
+QWK) — the opposite of the hypothesis that giving the model an explicit
+wound-localisation crop would help staging. E1-B and E2 are statistically
+indistinguishable from *each other* (within 1 std both ways) despite
+keeping very different amounts of context (skin+wound vs. wound only) — so
+it isn't "how much you mask", masking at all costs something the model was
+using. Plausible explanation: the full photo's background/framing/clinical
+context (bed linens, lighting, scale cues) was contributing real signal
+that a flat black mask removes, more than localisation was adding.
+
+Not yet re-run with `--batch 32` repeated as a sanity check that the
+original (unfixed) exp-1 number (0.7782 acc) was close to the `--batch 16`
+one (0.7819) purely by chance rather than batch size mattering more than
+this single comparison suggests — the two are close enough (within 1 std)
+that this wasn't pursued further, but worth knowing if these numbers get
+revisited.
 
 ## 5. Checkpoint gaps elsewhere (context for later)
 

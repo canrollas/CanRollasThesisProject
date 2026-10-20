@@ -15,15 +15,13 @@ task_3/checkpoints/
 task_3/results/
 task_3/configs/resolved_grid.json
 
-# more_experiments (Chapter 8): generated checkpoints/crops/predictions/
-# results, not source-controlled. configs/, manifests/, scripts/ are kept.
-more_experiments/*/checkpoints/
-more_experiments/*/results/
+# more_experiments (Chapter 8): checkpoints are large Colab-generated
+# artifacts (regenerable, not source-controlled) wherever they live, at
+# any depth under exp/. results/*.csv are the actual experiment numbers --
+# small text files, kept and tracked, same for configs/, scripts/, manifests/.
+more_experiments/**/*.pt
 more_experiments/piid_crops/crops/
 more_experiments/piid_crops/manifests/
-more_experiments/task2_tissue_predict/predictions/
-more_experiments/results/comparison/
-more_experiments/results/figures/
 
 # Python
 __pycache__/
