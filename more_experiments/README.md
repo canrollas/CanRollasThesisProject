@@ -161,7 +161,7 @@ revisited.
 | Model | Status |
 |---|---|
 | Task 3, MiT-B1+CORN (confirmed best) | metrics exist (`ablation_summary.csv`), but no `.pt` for any fold locally — only needed if a pipeline wants the actual original-RGB-baseline weights, not just its numbers. |
-| Task 2, MAnet+MiT-B2 (current best) | no checkpoint at all locally — blocks tissue-composition experiments until retrained or retrieved from Drive. |
+| Task 2, MAnet+MiT-B2 | checkpoints ARE present and usable: `task_2/results/task_2_outputs/checkpoints/wound_inner_fold{1,2,3}/MAnet_mit_b2_imagenet.pth`. Not a gap — use these directly for tissue-composition experiments (exp-3 etc). |
 
 (`task_1`–`task_3`'s `checkpoints/`/`results/` are gitignored, so this
 reflects what's on this machine, not necessarily Drive.)
