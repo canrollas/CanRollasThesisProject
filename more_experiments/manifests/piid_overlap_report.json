@@ -1,5 +1,6 @@
 {
-  "methodology": "Filename-prefix source tagging via task_1/src/splits.py SOURCE_PATTERNS (ft_evre1_stage_1 = PIID Stage-1 photos included in Task 1 training). Cross-checked against datasets/wound-stage-classification/stage_1 by trailing numeric id in the filename, then spot-verified by opening image pairs (ft_evre1_stage_1_10267.png vs stage_1_10267.jpg) to confirm they are the same underlying photo, not an id collision.",
+  "methodology": "Filename-prefix source tagging via task_1/src/splits.py SOURCE_PATTERNS (ft_evre1_stage_1 = PIID Stage-1 photos included in Task 1 training). Cross-checked against datasets/wound-stage-classification/stage_1 by trailing numeric id in the filename, then spot-verified by opening image pairs (ft_evre1_stage_1_10267.png vs stage_1_10267.jpg) to confirm they are the same underlying photo, not an id collision. (This cross-check needs datasets/wound-stage-classification on disk; see 'classification_cross_check_available' below.)",
+  "classification_cross_check_available": true,
   "task1_source_counts": {
     "ft_evre1_stage_1": 228,
     "ft_tendonbone": 488,
@@ -34,5 +35,5 @@
       "fusc_1221.png"
     ]
   },
-  "task2_piid_overlap_check": "No PIID/evre/stage-pattern filenames found in datasets/wound-tissue-segmentation/tissue_images/. Task 2's 612 tissue images are built from 488 unique case-uuids that are a 1:1 match with Task 1's 'ft_tendonbone_<uuid>' clinical-photo subset (488 images) -- i.e. Task 1 and Task 2 share clinical source photos with each other, but neither shares any image with the PIID staging dataset. No Task-2-to-Task-3 leakage risk found."
+  "task2_piid_overlap_check": "No PIID/evre/stage-pattern filenames found in datasets/wound-tissue-segmentation/tissue_images/. Task 2's 612 tissue images are built from 488 unique case-uuids that are a 1:1 match with Task 1's 'ft_tendonbone_<uuid>' clinical-photo subset (488 images) -- i.e. Task 1 and Task 2 share clinical source photos with each other, but neither shares any image with the PIID staging dataset. No Task-2-to-Task-3 leakage risk found. (Checked once against the raw dataset; not re-derived on every run since it doesn't depend on wound-stage-classification.)"
 }
