@@ -2,4 +2,6 @@ config_id,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,early_sto
 mit_b1__corn__tissue_statistics_only,none (stats-only MLP),corn,n/a,0,0.006,0.384,0.3201,0.7403,0.3608,,25.3
 mit_b1__corn__tissue_statistics_only,none (stats-only MLP),corn,n/a,1,0.006,0.3674,0.2854,0.7459,0.3421,,25.0
 mit_b1__corn__tissue_statistics_only,none (stats-only MLP),corn,n/a,2,0.006,0.3896,0.3141,0.733,0.362,,25.1
+mit_b1__corn__tissue_statistics_residual_fusion,mit_b1,corn,baseline_checkpoint,0,13.159,0.8122,0.8135,0.1934,0.9152,11,41.9
 mit_b1__corn__tissue_statistics_residual_fusion,mit_b1,corn,baseline_checkpoint,1,13.159,0.8343,0.835,0.1657,0.931,17,63.3
+mit_b1__corn__tissue_statistics_residual_fusion,mit_b1,corn,baseline_checkpoint,2,13.159,0.8011,0.8041,0.2125,0.893,11,42.3

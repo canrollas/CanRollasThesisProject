@@ -1,0 +1,14 @@
+{
+  "config_id": "mit_b1__corn__tissue_statistics_residual_fusion",
+  "fold": 0,
+  "trained_at_utc": "2026-10-20T21:33:12+00:00",
+  "rgb_baseline_checkpoint": "task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold0.pt",
+  "pretraining_verification": {
+    "fusion z_rgb matches reference exactly": true,
+    "fusion z_final matches reference exactly (delta_z==0 at init)": true,
+    "delta_z is exactly zero at init": true
+  },
+  "early_stopped_at_epoch": 11,
+  "rgb_logits_unchanged_across_training": true,
+  "params_m": 13.159
+}

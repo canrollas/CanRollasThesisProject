@@ -394,20 +394,33 @@ extra signal to extract, not a large one being missed.
 
 Same `z_final = z_rgb + delta_z` mechanism as exp-5, residual MLP on the
 20-dim vector instead of CNN features (`scripts/train_residual.py`,
-reuses `exp5/scripts/engine.py` unchanged). Fold 1 (only fold with a
-local baseline checkpoint): **accuracy 0.8343, macro F1 0.8350, QWK
-0.9310** — essentially matching the baseline and exp-5's best CNN result.
+reuses `exp5/scripts/engine.py` unchanged). All 3 folds now trained
+(fold0/fold2 RGB baseline checkpoints obtained and copied in locally,
+no Colab needed): **accuracy 0.8159 ± 0.0138, macro F1 0.8175 ± 0.0129,
+QWK 0.9131 ± 0.0156** — per-fold: fold0 0.8122/0.8135/0.9152, fold1
+0.8343/0.8350/0.9310, fold2 0.8011/0.8041/0.8930. Essentially
+indistinguishable from the RGB baseline (0.8168 ± 0.0150 / 0.8182 ± 0.0138
+/ 0.9138 ± 0.0164) and from exp-5's best CNN-tissue result — the mean
+sits a hair below baseline, well inside the fold-to-fold noise.
 
 **Tissue-shuffle ablation** (`scripts/diagnose_residual_stats.py`, same
-method as exp-5's): cosine(real, shuffled) ≈ 1.0 still, but **relative
-L2(real,shuffled)/‖delta_z‖ = 0.101** — about **20x higher** than the
+method as exp-5's, run on all 3 folds): cosine(real, shuffled) ≈ 1.0 in
+every fold, but **relative L2(real,shuffled)/‖delta_z‖ = 0.076 / 0.140 /
+0.154** (fold0/1/2, mean ≈ 0.12) — roughly **25x higher** than the
 CNN-tissue variant's 0.0045. Swapping in a different image's tissue
-statistics now visibly moves the correction's magnitude, not just
-leaving it unchanged. Bypassing the CNN's weak-gradient bottleneck with
-deterministic features measurably increased content-sensitivity, even
-though the direction is still mostly stable — a genuine, if partial, step
-forward on the open question from exp-5. **Folds 0 and 2 still need
-their RGB baseline checkpoints locally to complete the 3-fold result.**
+statistics now visibly moves the correction's magnitude in every fold,
+not just leaving it unchanged. Bypassing the CNN's weak-gradient
+bottleneck with deterministic features measurably increased
+content-sensitivity — a genuine, if partial, step forward on the open
+question from exp-5. **But the increased content-sensitivity did not
+convert into an accuracy gain**: fold1 is the only fold where the
+residual actually flips any predictions (2/73, both fixes, pushing that
+fold to 0.8630 vs RGB-only 0.8356 on the validation split used for
+diagnosis), while fold0 and fold2 change zero predictions. **Conclusion:
+the hand-crafted tissue signal is real and more extractable than the CNN's,
+but still too weak/noisy relative to the strong RGB baseline to move
+aggregate 3-fold accuracy — consistent with `tissue_statistics_only`'s
+own ~0.38 standalone accuracy being far below the ~0.82 RGB baseline.**
 
 ### Which tissue features actually discriminate stage? (`scripts/analyze_tissue_stats.py`)
 
