@@ -253,9 +253,22 @@ RGB backbone by default, and that freezing the RGB backbone actually
 stops its gradients — all pass. Smoke-tested end to end (concat, gated,
 and gated+freeze all run cleanly); not yet trained for real.
 
-**exp-3's real numbers are in now** (section 6): accuracy 0.7791, macro
-F1 0.7822, QWK 0.8997 — below the baseline, close to exp-1/exp-2. That's
-the number exp-4's concat run needs to beat for late fusion to look like
-the more promising combination strategy. `colab_train.ipynb` runs concat
-first, gated only as a follow-up if concat looks promising,
-per the brief's own prioritization.
+**Trained for real, both fusion modes** (RGB arm still ImageNet-init, not
+baseline-init — see exp-5 below for why that matters):
+
+| Metric | E1-A baseline | E3 exp-3 (early fusion) | **E4-concat** | **E4-gated** |
+|---|---|---|---|---|
+| Accuracy | 0.8168 | 0.7791 | **0.7983** | 0.7957 |
+| Macro F1 | 0.8182 | 0.7822 | **0.8003** | 0.7977 |
+| QWK      | 0.9138 | 0.8997 | **0.9109** | 0.9063 |
+
+Late fusion clearly beats early fusion (exp-3) and exp-1/exp-2 on every
+metric, and closes most of the gap to the baseline — QWK in particular
+(0.9109 vs. 0.9138) is within 1 std of the baseline's own std (0.0164).
+Still short of the baseline on accuracy/macro F1 though, and `concat`
+slightly edges out `gated` here (gated's higher std, 0.0238 vs 0.0156,
+suggests the extra gating complexity added variance without a
+compensating accuracy gain on this data size — not yet enough evidence to
+call `gated` the better choice). First real signal in this chapter that
+*how* RGB and tissue information are combined matters as much as *whether*
+it's added at all.

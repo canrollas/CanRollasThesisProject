@@ -1,0 +1,7 @@
+config_id,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,train_time_s
+mit_b1__corn__exp4_latefusion_concat,mit_b1,corn,imagenet,0,13.476,0.7762,0.7783,0.232,0.8951,118.1
+mit_b1__corn__exp4_latefusion_concat,mit_b1,corn,imagenet,1,13.476,0.8094,0.8118,0.1906,0.9214,111.3
+mit_b1__corn__exp4_latefusion_concat,mit_b1,corn,imagenet,2,13.476,0.8093,0.8107,0.1935,0.9162,112.7
+mit_b1__corn__exp4_latefusion_gated,mit_b1,corn,imagenet,0,13.461,0.7845,0.787,0.2182,0.9003,113.8
+mit_b1__corn__exp4_latefusion_gated,mit_b1,corn,imagenet,1,13.461,0.8287,0.8295,0.174,0.9238,114.1
+mit_b1__corn__exp4_latefusion_gated,mit_b1,corn,imagenet,2,13.461,0.7738,0.7767,0.2289,0.8949,113.1

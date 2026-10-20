@@ -1,0 +1,18 @@
+{
+  "config_id": "mit_b1__corn__exp4_latefusion_concat",
+  "fold": 0,
+  "trained_at_utc": "2026-10-20T20:12:47+00:00",
+  "architecture": "late fusion: ImageNet MiT-B1 (RGB) + small CNN (tissue), CORN head",
+  "fusion": "concat",
+  "rgb_arm_init": "ImageNet pretrained only -- no staging-finetuned RGB checkpoint existed locally",
+  "freeze_epochs": 0,
+  "finetune_lr": null,
+  "image_size": 224,
+  "batch_size": 16,
+  "epochs": 100,
+  "lr": 0.0001,
+  "weight_decay": 1e-05,
+  "seed": 42,
+  "data_root": "/content/CanRollasThesisProject/more_experiments/exp/exp4_late_fusion/../../../datasets/wound-staging-masks-exp-3",
+  "params_m": 13.476
+}

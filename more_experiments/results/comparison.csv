@@ -3,3 +3,5 @@ E1-A,original full-frame RGB (task_3 baseline),mit_b1,corn,3,0.8168,0.0150,0.818
 E1-B,exp-1: skin+wound kept background removed,mit_b1,corn,3,0.7819,0.0157,0.7815,0.0149,0.8935,0.0111,more_experiments/exp/exp1_wound_crop/results/exp1b_summary.csv
 E2,exp-2: wound only kept adaptively dilated,mit_b1,corn,3,0.7837,0.0222,0.7863,0.0214,0.9000,0.0149,more_experiments/exp/exp2_wound_dilated/results/exp2_summary.csv
 E3,exp-3: early fusion RGB + 5 tissue-probability channels (8ch),mit_b1,corn,3,0.7791,0.0126,0.7822,0.0116,0.8997,0.0098,more_experiments/exp/exp3_tissue_channels/results/exp3_summary.csv
+E4-concat,exp-4: late fusion RGB(ImageNet)+tissue CNN concat+MLP,mit_b1,corn,3,0.7983,0.0156,0.8003,0.0155,0.9109,0.0114,more_experiments/exp/exp4_late_fusion/results/exp4_summary.csv
+E4-gated,exp-4: late fusion RGB(ImageNet)+tissue CNN gated residual,mit_b1,corn,3,0.7957,0.0238,0.7977,0.0229,0.9063,0.0125,more_experiments/exp/exp4_late_fusion/results/exp4_summary.csv
