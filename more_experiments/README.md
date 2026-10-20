@@ -1,20 +1,52 @@
 # more_experiments — Chapter 8: Wound Staging Improvement
 
 Additional experiments for Chapter 8: can staging (Task 3) be improved by
-reusing wound localisation (Task 1) and tissue composition (Task 2)
-information, without leaking PIID staging data into the models that produce
-that information?
+reusing wound localisation (Task 1) information, without leaking PIID
+staging data into the model that produces it? Tissue-composition (Task 2)
+experiments come next, once exp-1/exp-2 are evaluated.
 
-**Status: investigation + scaffolding only. No training has been run.**
-Everything below is the result of inspecting the datasets and existing
-code, per the "immediate instructions" in the project brief (do not train
-until this is reviewed and approved).
+## Folder structure
+
+```
+more_experiments/
+├── manifests/                 verified PIID overlap report + leakage-free Task 1 filelist
+├── scripts/
+│   └── verify_piid_overlap.py     reproduces manifests/ from raw dataset files, no cached assumptions
+├── task1_retrain/              Step 1: leakage-free Task 1 (MAnet+MiT-B2) -- DONE, all 3 folds trained
+│   ├── configs/base.yaml
+│   ├── leakagefree_splits.py
+│   ├── run_leakagefree.py
+│   ├── colab_leakagefree_retrain.ipynb
+│   └── checkpoints/            manet__mit_b2__imagenet_leakagefree_fold{0,1,2}.pt
+├── piid_crops/                 shared Step 2: ensemble-mask generation (feeds every exp/ below)
+│   ├── generate_masks_ensemble.py   -> datasets/wound-staging-masks/ (3-fold soft-vote mask)
+│   ├── generate_masks.py            single-fold version, kept for fold-vs-fold comparison
+│   └── compare_folds.py             per-image mask IoU + detection-rate agreement between folds
+└── exp/                         one self-contained folder per staging experiment
+    ├── exp1_wound_crop/         skin+wound kept, background dropped
+    │   ├── configs/base.yaml
+    │   ├── scripts/
+    │   │   ├── generate_dataset.py    -> datasets/wound-staging-masks-exp-1/
+    │   │   └── train.py               MiT-B1 + CORN (task_3's confirmed best config)
+    │   ├── checkpoints/
+    │   └── results/
+    └── exp2_wound_dilated/      wound only kept, adaptively dilated when small/undetected
+        ├── scripts/
+        │   └── generate_dataset.py    -> datasets/wound-staging-masks-exp-2/
+        ├── checkpoints/         (empty -- train.py not written yet)
+        └── results/
+```
+
+`checkpoints/`, `results/`, and `task1_retrain/checkpoints/*.pt` are
+gitignored (Colab/local-generated, same convention as `task_1/`–`task_3/`).
+Original thesis experiments and checkpoints under `task_1/`, `task_2/`,
+`task_3/` are untouched by anything here. Future tissue-composition
+experiments get their own `exp/expN_.../` folder alongside exp1/exp2 when
+we get to them -- same shape, no restructuring needed.
 
 ## 1. PIID overlap — verified
 
-Reproducible via `scripts/verify_piid_overlap.py` (uses
-`task_1/src/splits.py`'s existing source-tagging logic, run with
-`task_1/.venv/bin/python3 more_experiments/scripts/verify_piid_overlap.py`).
+Run with `task_1/.venv/bin/python3 more_experiments/scripts/verify_piid_overlap.py`.
 Full output: `manifests/piid_overlap_report.json`.
 
 | | |
@@ -27,111 +59,78 @@ Full output: `manifests/piid_overlap_report.json`.
 | — `ft_evre1_stage_1` (**PIID Stage 1**) | **228** |
 | Leakage-free Task 1 count | **3,248** (= 3,476 − 228, matches the thesis) |
 
-**228 is confirmed correct, not 221.** Task 1's own `src/splits.py` already
-tags this subset as its own source (`ft_evre1_stage_1` prefix), and all 228
-of those filenames match, by trailing numeric id, 228 of the 230 images in
-`datasets/wound-stage-classification/stage_1/`. Spot-checked two id matches
-by opening the actual image pairs — identical photos (e.g.
-`ft_evre1_stage_1_10267.png` ≡ `stage_1_10267.jpg`), confirming this is a
-real correspondence, not a coincidence. The other 2 Stage-1 PIID images
-(ids `37467`, `98789`) were never in Task 1's training set to begin with.
+228 confirmed correct (not 221): Task 1's own `src/splits.py` already tags
+this subset by filename prefix, and all 228 match, by trailing numeric id,
+228 of the 230 images in `datasets/wound-stage-classification/stage_1/` —
+spot-checked by opening image pairs, identical photos. The other 2 Stage-1
+PIID images were never in Task 1's training set to begin with. (Naive
+numeric-id matching against stage_2/3/4 turns up unrelated false-positive
+collisions from `fusc`/`wsnet`/`ft_tendonbone` reusing small ids — logged
+in the report, not real overlaps.)
 
-**Caveat worth keeping in mind:** naive numeric-id matching against
-`stage_2/3/4` turns up a handful of *false-positive* collisions (e.g. id
-`1221` exists as both `fusc_1221.png` in Task 1 and `stage_3_1221.jpg` in
-the classification set), because `fusc`/`wsnet`/`ft_tendonbone` reuse small
-integer ids unrelated to PIID. Visually confirmed these are unrelated
-photos. Logged in the report so nobody rediscovers them and panics. Only
-the `ft_evre1_stage_1` prefix is a real PIID/Task-1 overlap.
+Task 2 (tissue segmentation) has **no PIID overlap** at all — its images
+share source photos with Task 1's clinical subset, not with PIID staging —
+so it needs no leakage-free retrain when we get to it.
 
-## 2. Task 2 (tissue segmentation) — no PIID overlap
+## 2. Step 1 — leakage-free Task 1 retrain (DONE)
 
-No PIID/`evre`/`stage`-pattern filenames exist in
-`datasets/wound-tissue-segmentation/tissue_images/`. Its 612 images (491
-unique case-uuids, some with multiple wounds) are built from the *same* 488
-unique clinical-photo uuids as Task 1's `ft_tendonbone` subset — i.e. **Task
-1 and Task 2 share source photos with each other**, but neither shares
-anything with PIID staging. No Task-2→Task-3 leakage risk; Task 2 does not
-need a leakage-free retrain. (The Task1↔Task2 overlap is a separate,
-lower-priority note — both are segmentation tasks on the same clinical
-images, not a staging-evaluation leak.)
+MAnet + MiT-B2, trained on the 3,248 leakage-free images, 3-fold CV,
+reusing `task_1/src` verbatim. All 3 fold checkpoints trained on Colab and
+copied into `task1_retrain/checkpoints/`.
 
-## 3. Checkpoint availability — gaps found
+Fold-vs-fold comparison on the full PIID staging set (`piid_crops/compare_folds.py`):
+stage_2/3/4 are identical across folds (open wounds, easy). stage_1 (intact
+or near-intact skin) is where folds disagree — detection rate rises
+monotonically fold0 (73.0%) → fold1 (80.0%) → fold2 (89.6%), 58/230 stage_1
+images where the three folds don't all agree. Decided to **ensemble all
+three** (average softmax probabilities, then argmax) rather than pick one,
+to smooth out single-fold false positives — `generate_masks_ensemble.py`
+produces `datasets/wound-staging-masks/`, the shared mask dataset every
+`exp/` below is built from.
+
+## 3. Shared masks → per-experiment datasets
+
+`datasets/wound-staging-masks/stage_X/{images,masks}/` = the full PIID
+staging set with an ensemble-predicted 3-class mask (other/skin/wound) per
+image. Two experiment variants built from it so far, both **flat**
+(`stage_X/<file>`, no masks saved, matching `wound-stage-classification/`'s
+own layout exactly so `task_3/src` can be reused unmodified):
+
+- **exp-1** (`exp/exp1_wound_crop/scripts/generate_dataset.py`): keep
+  skin+wound, zero out background. Mean kept-area ≈ 97%.
+- **exp-2** (`exp/exp2_wound_dilated/scripts/generate_dataset.py`): keep
+  wound only. Problem: 41/1091 images had zero predicted wound pixels, and
+  small wounds leave the model almost nothing. Fixed with **adaptive
+  dilation**, inversely proportional to original wound size: grow (exact
+  circular/Euclidean growth, not a square kernel) until the region covers
+  ≥8% of the image or a 70px radius cap is hit; if nothing was detected at
+  all, seed a small disk at the image center first, then grow the same way.
+  233/1091 images were grown this way (41 of those from a center seed); none
+  hit the radius cap.
+
+Both scripts read `datasets/wound-staging-masks/` and never touch the
+staging label.
+
+## 4. Experiment training
+
+`exp/exp1_wound_crop/scripts/train.py` — MiT-B1 + CORN (task_3's confirmed
+best config, `task_3/results/task_3_outputs/results/ablation_summary.csv`),
+trained on `datasets/wound-staging-masks-exp-1/`. Since that dataset has
+the exact same layout as the original, `task_3/src/splits.py`'s own
+`build_folds()` reproduces the **original PIID 3-fold split** exactly (same
+filenames, same seed) — verified by direct comparison before relying on it.
+Smoke-tested end to end (checkpoint + results row written correctly), not
+yet run for real.
+
+`exp/exp2_wound_dilated/` has its dataset but no `train.py` yet — next
+step, same pattern as exp-1 once exp-1's real results are in.
+
+## 5. Checkpoint gaps elsewhere (context for later)
 
 | Model | Status |
 |---|---|
-| Task 1, MAnet+MiT-B2, all 3 folds | ✅ present — `task_1/results/task_1_outputs/checkpoints/manet__mit_b2__imagenet_fold{0,1,2}.pt`. **Not reusable here** (trained on PIID-contaminated data) — reference only, e.g. for an "original vs. leakage-free Task 1" sanity comparison. |
-| Task 3, MiT-B1+CORN (confirmed best: 81.7% acc, QWK 0.914 in `task_3/results/task_3_outputs/results/ablation_summary.csv`) | ⚠️ **metrics exist, checkpoints do not.** No `.pt` file for `mit_b1__corn` in `task_3/results/task_3_outputs/checkpoints/` for any fold — only CSV results were kept locally. Experiment 1A/2A can reuse the *numbers*, but any pipeline needing the actual weights (e.g. as a fine-tuning start point) requires retraining this config first. |
-| Task 2, MAnet+MiT-B2 (current/post-fix best) | ❌ **no checkpoint at all.** `task_2/results/` has qualitative panel PNGs and metric CSVs (so it was trained at some point, likely on Colab) plus a `legacy/checkpoints_pre_fix/` set from *before* the regularization revert (commit `5cb9e6d`) — but no current-config weights locally. **Step/Experiment 2 is blocked on this** until Task 2 is retrained or its Colab/Drive checkpoint is retrieved. |
+| Task 3, MiT-B1+CORN (confirmed best) | metrics exist (`ablation_summary.csv`), but no `.pt` for any fold locally — only needed if a pipeline wants the actual original-RGB-baseline weights, not just its numbers. |
+| Task 2, MAnet+MiT-B2 (current best) | no checkpoint at all locally — blocks tissue-composition experiments until retrained or retrieved from Drive. |
 
-(All three tasks' `checkpoints/`/`results/` dirs are gitignored — Colab-generated, never committed — so this reflects what exists on *this* machine, not necessarily what exists on Drive.)
-
-## 4. Open decisions before training starts
-
-- **`piid_crops/configs/crop_config.yaml` — `fallback_strategy`**: what happens when the leakage-free Task 1 model finds no wound (expected for some intact-skin Stage 1 photos)? Must be fixed in advance and not depend on staging labels.
-- **`task2_tissue_predict/configs/tissue_predict_config.yaml` — `tissue_representation`**: probability maps vs. categorical vs. continuous feature — brief explicitly forbids defaulting to arbitrary ordinal integers.
-- **`task2_tissue_predict/configs/tissue_predict_config.yaml` — `no_wound_bed_handling`**: Stage 1 images with intact skin need explicit handling, not a fabricated tissue prediction.
-- **`exp1_crop_robustness/configs/perturbations.yaml`**: shift/scale/bbox-noise ranges — must be selected on train/val, never on the staging test fold.
-- **Task 2 checkpoint**: retrain, or retrieve from Drive? Blocks all of Experiment 2.
-
-## 5. Folder structure
-
-```
-more_experiments/
-├── manifests/                    verified PIID overlap report + leakage-free filelists (generated, tracked)
-├── scripts/verify_piid_overlap.py   reproduces section 1 from raw files, no cached assumptions
-├── task1_retrain/                 Step 1: leakage-free Task 1 (MAnet+MiT-B2) — configs/checkpoints/results
-├── piid_crops/                    Step 2: masks/bboxes/crops from the leakage-free model — configs/manifests/crops
-├── exp1_wound_crop/                Experiment 1B: staging on crops (MiT-B1+CORN) — configs/checkpoints/results
-├── exp1_crop_robustness/           Experiment 1C: eval-only, perturbation sweep over 1B's checkpoint
-├── task2_tissue_predict/           tissue predictions for Experiment 2 — configs/predictions
-├── exp2_tissue_staging/            Experiment 2B: RGB+tissue staging — configs/checkpoints/results
-├── src/                            shared utilities (architectures, metrics) once implementation starts
-└── results/                        cross-experiment comparison tables + figures (E1-A..E2-B)
-```
-
-`checkpoints/`, `results/`, `crops/`, `predictions/`, and the generated
-parts of `manifests/` under each subfolder are gitignored, same convention
-as `task_1/`–`task_3/`. Original thesis experiments and checkpoints under
-`task_1/`, `task_2/`, `task_3/` are untouched by anything here.
-
-## 6. Step 1 is implemented: leakage-free Task 1 retrain
-
-`task1_retrain/` now has real code, not just a config placeholder:
-
-- `leakagefree_splits.py` — same stratified-by-source 3-fold CV as
-  `task_1/src/splits.py`, but sourced from
-  `../manifests/task1_leakagefree_filelist.txt` instead of listing the raw
-  image folder (which still has the 228 PIID images). Refuses to build
-  folds if any `ft_evre1_stage_1` file sneaks into the filelist.
-- `run_leakagefree.py` — trains the single MAnet+MiT-B2/ImageNet config for
-  3 folds, reusing `task_1/src`'s model/losses/engine/metrics/augmentations
-  code verbatim. Same resume-on-epoch-crash behaviour as
-  `task_1/run_ablation.py`. Writes to `./checkpoints` and `./results` only
-  — `task_1/` itself is untouched.
-- `colab_leakagefree_retrain.ipynb` — Colab notebook (mount Drive, clone
-  repo, fetch the same `wound-region-segmentation.zip` Task 1 uses,
-  re-verify the leakage-free manifest against that copy of the data, redirect
-  checkpoints/results to Drive, train, preview samples).
-
-**Smoke-tested locally** (`--smoke`: 1 fold, 2 epochs, 8/4/4 train/val/test
-images) end-to-end on this machine — correctly builds the leakage-free
-3-fold split (train/val/test sizes ≈ 1948/217/1083 before the smoke
-subsample), trains, and writes a checkpoint + results row + sample panel.
-Artifacts from that smoke run were deleted afterward (not real results).
-
-### Running on Colab
-
-1. Push this repo (`more_experiments/` is all text — configs, scripts, two
-   `.py` files, one notebook; no binaries) to GitHub.
-2. Open `task1_retrain/colab_leakagefree_retrain.ipynb` in Colab, pick a GPU
-   runtime, run cells top to bottom. Needs
-   `drive/MyDrive/thesis/wound-region-segmentation.zip` to already exist
-   (same zip Task 1's own notebook uses).
-3. Outputs land in `drive/MyDrive/thesis/task1_leakagefree_outputs/` —
-   separate from Task 1's own `task_1_outputs/`, so the original checkpoints
-   are never at risk of being overwritten.
-
-This is still only **Step 1** (MAnet+MiT-B2, 1 architecture, as requested —
-not the full original ablation grid). Steps 2–3 (crop generation, staging
-retrain) still need their own training code before they can run.
+(`task_1`–`task_3`'s `checkpoints/`/`results/` are gitignored, so this
+reflects what's on this machine, not necessarily Drive.)
