@@ -1,0 +1,30 @@
+# PIID wound mask + crop generation (Chapter 8, Step 2).
+#
+# Inference-only: runs the leakage-free Task 1 checkpoint
+# (../../task1_retrain/checkpoints/) over the full PIID staging dataset to
+# produce masks, bounding boxes, crops, and metadata. Must NOT read staging
+# labels at any point -- crop boundaries and fallback behaviour are derived
+# from the predicted mask only.
+
+task1_checkpoint: ../../task1_retrain/checkpoints/manet__mit_b2__imagenet_leakagefree_fold{fold}.pt
+source_data_root: ../../../datasets/wound-stage-classification
+image_size: 256               # must match task1_retrain inference resolution
+
+output:
+  masks_dir: ../manifests/masks
+  crops_dir: ../crops/rgb
+  masked_crops_dir: ../crops/rgb_masked_bg   # optional background-masked variant
+  metadata_csv: ../manifests/crop_metadata.csv
+
+crop:
+  padding_px: 16               # TODO: justify/tune on train/val only
+  min_wound_area_px: null      # TODO: threshold below which detection is "failed"
+
+# Deterministic fallback when no wound region is predicted (expected for some
+# intact-skin Stage 1 images). TODO: decide and document before Step 2 runs:
+#   - fall back to full-frame center crop? to the largest-confidence region
+#     regardless of threshold? skip the image and record "failed_detection"?
+# Must be fixed in advance, not chosen per-image after seeing staging labels.
+fallback_strategy: TODO
+
+seed: 42

@@ -1,0 +1,47 @@
+# Leakage-free Task 1 retrain (Chapter 8, Step 1).
+#
+# Same architecture/protocol as task_1/configs/base.yaml (best config from
+# the original ablation), but trained only on the 3,248 images that remain
+# after excluding every PIID image (see ../../manifests/piid_overlap_report.json
+# and task1_leakagefree_filelist.txt). This checkpoint is the ONLY Task-1
+# model allowed to generate localisation info for Chapter 8 experiments.
+#
+# Do not point this at datasets/wound-region-segmentation directly without
+# filtering through task1_leakagefree_filelist.txt -- that raw folder still
+# contains the 228 PIID images.
+
+architecture: manet
+encoder: mit_b2
+weights: imagenet
+
+image_size: 256
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+loss:
+  ce_weight: 0.5
+  dice_weight: 0.5
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [other, skin, wound]
+
+# Paths below are resolved relative to task1_retrain/ (this file's grandparent),
+# matching how run_leakagefree.py loads them -- not relative to configs/.
+filelist: ../manifests/task1_leakagefree_filelist.txt
+data_root: ../../datasets/wound-region-segmentation
+
+checkpoint_dir: checkpoints
+results_csv: results/leakagefree_results.csv

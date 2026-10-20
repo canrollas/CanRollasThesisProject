@@ -1,0 +1,38 @@
+{
+  "methodology": "Filename-prefix source tagging via task_1/src/splits.py SOURCE_PATTERNS (ft_evre1_stage_1 = PIID Stage-1 photos included in Task 1 training). Cross-checked against datasets/wound-stage-classification/stage_1 by trailing numeric id in the filename, then spot-verified by opening image pairs (ft_evre1_stage_1_10267.png vs stage_1_10267.jpg) to confirm they are the same underlying photo, not an id collision.",
+  "task1_source_counts": {
+    "ft_evre1_stage_1": 228,
+    "ft_tendonbone": 488,
+    "fusc": 1210,
+    "medetec": 374,
+    "wsnet": 1176
+  },
+  "task1_total_images": 3476,
+  "piid_stage1_in_task1": 228,
+  "thesis_claimed_overlap": 228,
+  "user_mentioned_alternative": 221,
+  "resolution": "Verified count is 228 (matches the thesis's 228, not the 221 mentioned by the user). Source: exact count of filenames matching the 'ft_evre1_stage_1_' prefix in datasets/wound-region-segmentation/images/.",
+  "leakage_free_task1_count": 3248,
+  "expected_from_thesis_math": 3248,
+  "stage1_classification_total": 230,
+  "matched_by_numeric_id": 228,
+  "piid_stage1_not_in_task1_count": 2,
+  "piid_stage1_not_in_task1_ids": [
+    "37467",
+    "98789"
+  ],
+  "seg_piid_stage1_without_cls_match": [],
+  "numeric_id_false_positive_warning": "Naive numeric-id matching against stage_2/3/4 finds spurious hits because fusc/wsnet/ft_tendonbone filenames reuse small/short ids unrelated to PIID. Visually confirmed these are different photos (e.g. id 34168: fusc and stage_3 are unrelated wounds). These are NOT real overlaps -- listed here only so they aren't rediscovered and misinterpreted as leakage.",
+  "numeric_id_collisions_non_piid": {
+    "stage_2": [
+      "wsnet_1112.png",
+      "fusc_1196.png",
+      "fusc_1358.png",
+      "ft_tendonbone_IMG_7529.png"
+    ],
+    "stage_3": [
+      "fusc_1221.png"
+    ]
+  },
+  "task2_piid_overlap_check": "No PIID/evre/stage-pattern filenames found in datasets/wound-tissue-segmentation/tissue_images/. Task 2's 612 tissue images are built from 488 unique case-uuids that are a 1:1 match with Task 1's 'ft_tendonbone_<uuid>' clinical-photo subset (488 images) -- i.e. Task 1 and Task 2 share clinical source photos with each other, but neither shares any image with the PIID staging dataset. No Task-2-to-Task-3 leakage risk found."
+}

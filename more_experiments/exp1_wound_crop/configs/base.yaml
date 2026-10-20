@@ -1,0 +1,38 @@
+# Experiment 1B -- staging on predicted wound crops (Chapter 8).
+#
+# Same backbone/head/protocol as task_3's best config (mit_b1 + CORN,
+# confirmed best in task_3/results/task_3_outputs/results/ablation_summary.csv),
+# retrained on crops from ../../piid_crops/crops/rgb/ instead of the original
+# full-frame PIID photos. Uses the ORIGINAL PIID 3-fold split assignments
+# (task_3/src/splits.py build_folds(..., seed=42) over the same sample list)
+# so fold membership is identical to Experiment 1A for paired comparison.
+
+encoder: mit_b1
+head: corn
+weights: imagenet
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+data_root: ../../piid_crops/crops/rgb
+metadata_csv: ../../piid_crops/manifests/crop_metadata.csv
+
+checkpoint_dir: checkpoints
+results_csv: results/exp1b_results.csv

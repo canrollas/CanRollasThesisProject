@@ -1,0 +1,41 @@
+# Tissue prediction generation for Experiment 2 (Chapter 8).
+#
+# Runs Task 2's current best checkpoint (MAnet + MiT-B2) over the PIID
+# staging dataset to produce per-pixel tissue-class predictions, to be
+# fused with RGB for Experiment 2B.
+#
+# BLOCKED: no manet__mit_b2 checkpoint currently exists on disk for Task 2
+# (task_2/results/ only has qual_panel PNGs + metric CSVs plus a "legacy"
+# pre-regularization-fix checkpoint set; the post-fix best-config weights
+# were not retained locally). Task 2 must be retrained -- or its Colab/Drive
+# checkpoint retrieved -- before this config can be used. See
+# ../../README.md "Checkpoint availability".
+#
+# Task 2 was confirmed to have no PIID overlap in its own training data (see
+# ../../manifests/piid_overlap_report.json task2_piid_overlap_check), so no
+# leakage-free retrain is required here -- only the missing checkpoint.
+
+task2_checkpoint: TODO_MISSING  # e.g. ../../../task_2/results/task_2_outputs/checkpoints/manet__mit_b2__imagenet_fold{fold}.pt once retrained
+source_data_root: ../../../datasets/wound-stage-classification
+image_size: 512            # must match task_2/configs/base.yaml
+
+classes: [granulation, slough, necrosis, tendon, bone]
+
+# Representation decision (do NOT default to arbitrary ordinal ints, see
+# project brief section 5): pick one and document why before implementation.
+#   - five_channel_probability_maps  (softmax output, one channel per class)
+#   - categorical_argmax_onehot
+#   - continuous_dominant_tissue_feature
+tissue_representation: TODO
+
+# Stage 1 images may have no open wound bed -- tissue predictions on intact
+# skin are not meaningful and must not be treated as valid ground truth.
+# TODO: define explicit handling (e.g. zero-fill + a "no_wound_bed" flag
+# channel) before generating predictions.
+no_wound_bed_handling: TODO
+
+output:
+  predictions_dir: predictions
+  metadata_csv: predictions/tissue_prediction_metadata.csv
+
+seed: 42

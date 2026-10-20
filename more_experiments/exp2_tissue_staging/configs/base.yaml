@@ -1,0 +1,41 @@
+# Experiment 2B -- RGB + tissue-aware staging (Chapter 8).
+#
+# Same backbone/head as Task 3's baseline (mit_b1 + CORN) and Experiment 1B,
+# with an added tissue-information input (see
+# ../../task2_tissue_predict/configs/tissue_predict_config.yaml for the
+# representation decision, still TODO). Trained on the ORIGINAL full-frame
+# PIID images (not crops) with the original 3-fold split, so it is paired
+# with Experiment 2A (reused Task 3 baseline results), not Experiment 1B.
+
+encoder: mit_b1
+head: corn
+weights: imagenet
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+data_root: ../../../datasets/wound-stage-classification
+tissue_predictions_dir: ../../task2_tissue_predict/predictions
+# input_channels depends on tissue_representation (see tissue_predict_config.yaml):
+#   3 (RGB) + 1..5 depending on representation chosen
+input_channels: TODO
+
+checkpoint_dir: checkpoints
+results_csv: results/exp2b_results.csv
