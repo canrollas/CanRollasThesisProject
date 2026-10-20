@@ -9,9 +9,17 @@ channels total; see ../scripts/generate_dataset.py).
 Reuses task_3/src's engine/losses/metrics/splits/augmentations/utils
 unchanged -- those only look at logits/targets/sample lists, not input
 channel count or file format. model.py and dataset.py are local (8-channel
-backbone via smp.encoders.get_encoder's built-in in_channels support;
-.npy loader with separate RGB/tissue normalization) since task_3/src's own
-versions hardcode 3-channel JPEGs.
+backbone with an EXPLICIT first-conv expansion -- pretrained RGB weights
+copied unchanged into channels 0-2, tissue channels 3-7 zero-initialized,
+so the model is mathematically identical to the RGB-only baseline before
+any training happens; see model.py's docstring and
+scripts/test_8ch_model.py for the verification. .npy loader with separate
+RGB/tissue normalization) since task_3/src's own versions hardcode
+3-channel JPEGs.
+
+Run scripts/test_8ch_model.py before trusting any training run from this
+script -- it checks the zero-init property, gradient flow into the tissue
+channels, and output shapes directly rather than assuming them.
 
 build_folds(data_root, ...) run against wound-staging-masks-exp-3
 reproduces the SAME fold assignment as the original Task 3 ablation (same
@@ -21,6 +29,7 @@ for a paired comparison against Experiment 1A/1B/2.
 Safe to interrupt and resume, same pattern as the other exp/*/scripts/train.py.
 """
 import argparse
+import json
 import sys
 import time
 import traceback
@@ -134,6 +143,31 @@ def main():
                 resume_path=resume_path,
             )
             train_time_s = time.time() - t0
+
+            provenance_path = checkpoint_path.with_suffix(".provenance.json")
+            with open(provenance_path, "w") as f:
+                json.dump({
+                    "config_id": CONFIG_ID,
+                    "fold": fold_idx,
+                    "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "encoder": base_cfg["encoder"],
+                    "head": base_cfg["head"],
+                    "in_channels": base_cfg["in_channels"],
+                    "pretrained_weights_source": f"segmentation_models_pytorch encoder_weights={base_cfg['weights']!r}",
+                    "first_conv_init": (
+                        "RGB channels (0-2) copied unchanged from the pretrained 3-channel "
+                        "encoder's first conv; tissue channels (3-7) zero-initialized -- see model.py"
+                    ),
+                    "image_size": base_cfg["image_size"],
+                    "batch_size": batch_size,
+                    "epochs": epochs,
+                    "lr": base_cfg["lr"],
+                    "weight_decay": base_cfg["weight_decay"],
+                    "eta_min_factor": base_cfg["eta_min_factor"],
+                    "seed": base_cfg["seed"],
+                    "data_root": str(data_root),
+                    "params_m": round(params_m, 3),
+                }, f, indent=2)
 
             criterion = build_loss(base_cfg["head"], num_classes)
             test_stats = run_epoch(model, test_loader, criterion, device, base_cfg["head"], num_classes,

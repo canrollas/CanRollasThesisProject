@@ -165,3 +165,38 @@ revisited.
 
 (`task_1`–`task_3`'s `checkpoints/`/`results/` are gitignored, so this
 reflects what's on this machine, not necessarily Drive.)
+
+## 6. exp-3 — RGB + tissue-probability channels
+
+`exp/exp3_tissue_channels/` — 8-channel input (full uncropped RGB, channels
+0-2, + 5 per-pixel tissue-class probabilities from Task 2, channels 3-7:
+granulation/slough/necrosis/tendon/bone), same MiT-B1+CORN protocol and
+verified-identical PIID 3-fold split as exp-1/exp-2.
+
+**First-layer init is explicit, not SMP's automatic `in_channels=8`
+mechanism** — checked what that automatic path actually does to MiT-B1's
+first conv and it was wrong for this ablation: it cyclically tiles the
+pretrained 3-channel weights across all 8 channels *and* scales every
+channel (RGB included) by 3/8, so even the RGB pathway starts from
+different weights than the true RGB-only baseline. Replaced with an
+explicit expansion (`scripts/model.py`): RGB channels copied unchanged
+from the pretrained conv, tissue channels zero-initialized — the
+8-channel model is mathematically identical to the RGB-only baseline at
+initialization (verified directly: `forward(RGB, tissue=0) ==
+forward_3ch(RGB)` exactly), and any divergence after training is then
+attributable to the model learning to use tissue information, not a
+different starting point. `scripts/test_8ch_model.py` checks this
+property plus gradient flow into the zero-initialized channels before any
+training is trusted — run it first.
+
+Data provenance: `datasets/wound-staging-masks-exp-3/provenance.json`
+records the Task 1/Task 2 checkpoints used, channel order, and the
+leakage check (Task 2's training data has zero overlap with the PIID
+staging images these tissue predictions are generated for — verified in
+section 1 above, not assumed for exp-3). Each training checkpoint also
+gets a `.provenance.json` sidecar (config, pretrained-weight source,
+first-conv init method).
+
+Not yet trained for real (smoke-tested only) — `colab_train.ipynb` ready,
+dataset zipped (`datasets/wound-staging-masks-exp-3.zip`, ~144MB) for
+Drive upload.

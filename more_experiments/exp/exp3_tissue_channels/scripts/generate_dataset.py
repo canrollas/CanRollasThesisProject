@@ -35,9 +35,27 @@ weights (see more_experiments/README.md "Checkpoint gaps"), just saved
 under an older naming convention. Ensembling all 3 is recommended,
 consistent with how Task 1's generate_masks_ensemble.py does it.
 
+Leakage check (tissue model vs. staging evaluation images): Task 2 was
+trained on datasets/wound-tissue-segmentation/tissue_images/ (612 images,
+488 unique clinical-photo case-uuids). Verified directly (see
+more_experiments/manifests/piid_overlap_report.json ->
+task2_piid_overlap_check, and more_experiments/README.md section 1) that
+this source has ZERO filename/uuid overlap with the PIID staging dataset
+(datasets/wound-stage-classification/) these tissue predictions are being
+generated for -- no PIID image or patient was ever seen during Task 2
+training, in any fold. Because of that, there is no "which Task 2 fold is
+this staging image's fold" question to get wrong (unlike leaking Task 1 on
+its own PIID subset, which is exactly what task1_retrain/ exists to avoid)
+-- every staging image is equally out-of-distribution for all 3 Task 2
+folds, so ensembling all 3 for every staging image is leakage-safe by
+construction, not something that needs a per-image fold lookup.
+
 Output: one file per image, same stage_X/<file> layout as exp-1/exp-2 but
 saved as .npy (uint8, H x W x 8) since 8 channels don't fit a JPEG/PNG --
-<file> keeps the original stem with a .npy extension.
+<file> keeps the original stem with a .npy extension. A provenance.json
+at the dataset root records checkpoint paths, class order, and this
+leakage-check result, so the generated predictions are auditable without
+re-reading this docstring.
 
 Usage:
   python generate_dataset.py --checkpoints \
@@ -47,7 +65,9 @@ Usage:
 """
 import argparse
 import csv
+import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -144,6 +164,41 @@ def main():
     models = [load_model(c, device) for c in args.checkpoints]
     print(f"loaded {len(models)} Task 2 checkpoint(s) on {device}: {[Path(c).name for c in args.checkpoints]}")
     print("classes (channel order 4-8):", CLASS_ORDER)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    provenance = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generator_script": "more_experiments/exp/exp3_tissue_channels/scripts/generate_dataset.py",
+        "channel_order": ["R", "G", "B"] + CLASS_ORDER,
+        "task2_architecture": "manet + mit_b2",
+        "task2_checkpoints": [str(Path(c).resolve().relative_to(REPO_ROOT)) for c in args.checkpoints],
+        "task2_ensemble_method": "mean of per-fold softmax probabilities",
+        "task2_training_data": "datasets/wound-tissue-segmentation/tissue_images (612 images, 488 unique clinical-photo case-uuids)",
+        "task2_activation": "softmax over 5 classes (mutually exclusive)",
+        "leakage_check": (
+            "Verified zero filename/uuid overlap between Task 2's training source "
+            "(wound-tissue-segmentation) and the PIID staging dataset these predictions "
+            "are generated for (wound-stage-classification) -- see "
+            "more_experiments/manifests/piid_overlap_report.json 'task2_piid_overlap_check' "
+            "and more_experiments/README.md section 1. No staging image or patient was in "
+            "Task 2's training data in any fold, so ensembling all 3 Task 2 folds per "
+            "staging image is leakage-safe (every staging image is equally out-of-sample "
+            "for every Task 2 fold)."
+        ),
+        "wound_localization_source": "datasets/wound-staging-masks (leakage-free Task 1 ensemble, see piid_crops/generate_masks_ensemble.py)",
+        "wound_localization_architecture": "manet + mit_b2, trained on 3,248 leakage-free Task 1 images (more_experiments/task1_retrain)",
+        "task2_inference_resolution_px": TASK2_IMAGE_SIZE,
+        "bbox_padding_px": BBOX_PADDING_PX,
+        "no_wound_detected_behavior": (
+            "RGB channels keep the real, unmodified original photo (never replaced with a "
+            "synthetic/black image). Tissue channels (3-7) are all zero -- this is a "
+            "missing-feature signal, not a label: the staging label itself is untouched, "
+            "and a failed detection is never mapped to or conflated with Stage 1."
+        ),
+    }
+    with open(output_dir / "provenance.json", "w") as f:
+        json.dump(provenance, f, indent=2)
+    print(f"wrote {output_dir / 'provenance.json'}")
 
     metadata_rows = []
     num_classes = len(CLASS_ORDER)
