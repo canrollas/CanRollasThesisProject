@@ -314,11 +314,47 @@ fold checkpoints first, trains only whichever are still missing.
 | QWK      | 0.9332 | **0.9262** |
 
 Closer to its baseline than either exp-4 variant got to the overall
-baseline mean — early-stopped at epoch 12 (best at epoch 2). Diagnostics
-confirm the design works as intended: RGB branch logits provably
-unchanged across all of Phase 1 training, the residual-disabled check
-(`delta_z` forced to 0 post-training) reproduces the RGB output exactly,
-and the tissue branch contributes genuinely non-zero corrections after
-training (mean `||delta_z||` 0.0806 on the test batch) rather than
-collapsing back to zero. **Folds 0 and 2 still needed** before a 3-fold
-mean±std can be reported and compared against the baseline/exp-3/exp-4.
+baseline mean — early-stopped at epoch 12 (best at epoch 2).
+
+**3-fold result, `rgb_tissue` variant (complete):** accuracy 0.8158 ±
+0.0073, macro F1 0.8178 ± 0.0073, QWK 0.9132 ± 0.0122 — statistically
+indistinguishable from the baseline (0.8168/0.8182/0.9138), and with a
+*smaller* std than the baseline's own across all three metrics.
+
+**Root-cause diagnostic (`scripts/diagnose_residual.py`) found this isn't
+really "matching the baseline via genuine tissue correction"**: every
+fold's best checkpoint was saved from epoch 1–2 (near-zero `delta_z`);
+later epochs grew `delta_z`'s norm steadily while val macro-F1 *degraded*
+(classic overfit-then-rejected-by-early-stopping). At the converged
+checkpoint, `delta_z`'s magnitude is ~1000x smaller than `z_rgb`'s
+decision margins, the tissue CNN's gradient is ~1e-3–5e-3 (near-flat), and
+— most tellingly — swapping in a **different image's tissue map**
+(shuffled, same RGB) changes `delta_z` by cosine ≈ 1.0 (same direction
+regardless of content). The branch isn't using tissue information; it's
+converging to a near-baseline no-op.
+
+**Architecture fix, `tissue_only` variant** (`config_id:
+mit_b1__corn__tissue_only_residual`): `delta_z` computed from tissue CNN
+features ONLY (`TissueOnlyResidualHead`, `scripts/model.py`) —
+structurally cannot see RGB, verified directly
+(`scripts/test_residual_model.py`: changing RGB with tissue fixed changes
+`z_rgb` but leaves `delta_z` byte-identical). Also: GroupNorm instead of
+BatchNorm in the tissue CNN (batch_size=16 made BatchNorm's running stats
+noisy), dropout=0.2 in the residual head. LR unchanged (1e-4) — one
+isolated change at a time.
+
+Fold 1 result (only fold trained so far): accuracy 0.8370, macro F1
+0.8376, QWK 0.9323 — val-F1 now improves *monotonically* for the first 2
+epochs (0.8232→0.8574, vs. `rgb_tissue`'s immediate peak-then-decay),
+beats `rgb_tissue`'s fold 1 result on every metric, and matches/slightly
+exceeds the baseline's own fold 1. **But the tissue-ablation diagnostic
+still shows near-zero content-dependence** (cosine(real,shuffled)≈1.0,
+relative L2(real,shuffled)/‖delta_z‖≈0.005, tissue CNN gradient still
+~1e-3) — the architecture fix removed RGB as an escape route but hasn't
+yet given the tissue branch a strong enough learning signal to actually
+discriminate tissue content; the fold 1 improvement is plausibly a
+near-constant shift that happens to help a few borderline predictions,
+not genuine tissue-driven correction. Lowering the LR further (as
+originally planned as a follow-up) would likely make this worse, not
+better, given the gradient is already this weak — an open question, not
+yet resolved. **Folds 0 and 2 for `tissue_only` still needed.**

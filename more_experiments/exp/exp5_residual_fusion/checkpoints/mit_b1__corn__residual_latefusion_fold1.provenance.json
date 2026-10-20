@@ -1,7 +1,7 @@
 {
   "config_id": "mit_b1__corn__residual_latefusion",
   "fold": 1,
-  "trained_at_utc": "2026-10-20T20:40:23+00:00",
+  "trained_at_utc": "2026-10-20T20:45:20+00:00",
   "rgb_baseline_checkpoint": "task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold1.pt",
   "pretraining_verification": {
     "fusion z_rgb matches reference exactly": true,
@@ -15,7 +15,7 @@
   "rgb_logits_unchanged_across_training": true,
   "residual_disabled_check_reproduces_rgb": true,
   "nonzero_corrections_after_training": true,
-  "final_delta_z_norm_mean_test_batch": 0.0806,
+  "final_delta_z_norm_mean_test_batch": 0.1579,
   "params_m": 13.346,
   "lr": 0.0001,
   "seed": 42

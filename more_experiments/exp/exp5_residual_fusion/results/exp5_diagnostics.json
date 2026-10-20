@@ -1,112 +1,21 @@
 {
-  "fold1": [
-    {
-      "epoch": 1,
-      "train_loss": 0.052,
-      "val_loss": 0.2423,
-      "val_macro_f1": 0.8232,
-      "train_delta_z_norm_mean": 0.039,
-      "val_delta_z_norm_mean": 0.1168,
-      "val_delta_z_norm_max": 0.2002
-    },
-    {
-      "epoch": 2,
-      "train_loss": 0.0487,
-      "val_loss": 0.2406,
-      "val_macro_f1": 0.846,
-      "train_delta_z_norm_mean": 0.2232,
-      "val_delta_z_norm_mean": 0.4913,
-      "val_delta_z_norm_max": 0.8969
-    },
-    {
-      "epoch": 3,
-      "train_loss": 0.0458,
-      "val_loss": 0.2458,
-      "val_macro_f1": 0.8391,
-      "train_delta_z_norm_mean": 0.8261,
-      "val_delta_z_norm_mean": 1.1223,
-      "val_delta_z_norm_max": 2.054
-    },
-    {
-      "epoch": 4,
-      "train_loss": 0.0491,
-      "val_loss": 0.2464,
-      "val_macro_f1": 0.8391,
-      "train_delta_z_norm_mean": 1.1756,
-      "val_delta_z_norm_mean": 1.2706,
-      "val_delta_z_norm_max": 2.3797
-    },
-    {
-      "epoch": 5,
-      "train_loss": 0.0445,
-      "val_loss": 0.2476,
-      "val_macro_f1": 0.8391,
-      "train_delta_z_norm_mean": 1.3594,
-      "val_delta_z_norm_mean": 1.3232,
-      "val_delta_z_norm_max": 2.5312
-    },
-    {
-      "epoch": 6,
-      "train_loss": 0.0409,
-      "val_loss": 0.2535,
-      "val_macro_f1": 0.8147,
-      "train_delta_z_norm_mean": 1.3145,
-      "val_delta_z_norm_mean": 1.5051,
-      "val_delta_z_norm_max": 2.9698
-    },
-    {
-      "epoch": 7,
-      "train_loss": 0.0473,
-      "val_loss": 0.2534,
-      "val_macro_f1": 0.7937,
-      "train_delta_z_norm_mean": 1.6723,
-      "val_delta_z_norm_mean": 1.5958,
-      "val_delta_z_norm_max": 3.2051
-    },
-    {
-      "epoch": 8,
-      "train_loss": 0.0478,
-      "val_loss": 0.2537,
-      "val_macro_f1": 0.8281,
-      "train_delta_z_norm_mean": 1.6857,
-      "val_delta_z_norm_mean": 1.5891,
-      "val_delta_z_norm_max": 3.2297
-    },
-    {
-      "epoch": 9,
-      "train_loss": 0.0428,
-      "val_loss": 0.2606,
-      "val_macro_f1": 0.8204,
-      "train_delta_z_norm_mean": 1.8275,
-      "val_delta_z_norm_mean": 1.8327,
-      "val_delta_z_norm_max": 3.8375
-    },
-    {
-      "epoch": 10,
-      "train_loss": 0.0407,
-      "val_loss": 0.2643,
-      "val_macro_f1": 0.8314,
-      "train_delta_z_norm_mean": 2.0353,
-      "val_delta_z_norm_mean": 1.9317,
-      "val_delta_z_norm_max": 4.1771
-    },
-    {
-      "epoch": 11,
-      "train_loss": 0.0453,
-      "val_loss": 0.2573,
-      "val_macro_f1": 0.8133,
-      "train_delta_z_norm_mean": 2.1731,
-      "val_delta_z_norm_mean": 1.6203,
-      "val_delta_z_norm_max": 4.0814
-    },
-    {
-      "epoch": 12,
-      "train_loss": 0.0449,
-      "val_loss": 0.26,
-      "val_macro_f1": 0.8133,
-      "train_delta_z_norm_mean": 2.2845,
-      "val_delta_z_norm_mean": 1.8653,
-      "val_delta_z_norm_max": 4.5665
-    }
-  ]
+  "mit_b1__corn__tissue_only_residual": {
+    "fold1": [
+      {"epoch": 1, "train_loss": 0.058, "val_loss": 0.2424, "val_macro_f1": 0.8232, "train_delta_z_norm_mean": 0.0422, "val_delta_z_norm_mean": 0.1145, "val_delta_z_norm_max": 0.116},
+      {"epoch": 2, "train_loss": 0.0548, "val_loss": 0.2404, "val_macro_f1": 0.8574, "train_delta_z_norm_mean": 0.2029, "val_delta_z_norm_mean": 0.3415, "val_delta_z_norm_max": 0.3442},
+      {"epoch": 3, "train_loss": 0.0515, "val_loss": 0.2391, "val_macro_f1": 0.846, "train_delta_z_norm_mean": 0.5713, "val_delta_z_norm_mean": 0.7585, "val_delta_z_norm_max": 0.7628},
+      {"epoch": 4, "train_loss": 0.0422, "val_loss": 0.2403, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 0.9087, "val_delta_z_norm_mean": 1.023, "val_delta_z_norm_max": 1.0278},
+      {"epoch": 5, "train_loss": 0.0482, "val_loss": 0.2409, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.0921, "val_delta_z_norm_mean": 1.0784, "val_delta_z_norm_max": 1.0896},
+      {"epoch": 6, "train_loss": 0.0528, "val_loss": 0.2406, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.0666, "val_delta_z_norm_mean": 1.0145, "val_delta_z_norm_max": 1.0431},
+      {"epoch": 7, "train_loss": 0.0494, "val_loss": 0.2413, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.091, "val_delta_z_norm_mean": 1.132, "val_delta_z_norm_max": 1.1604},
+      {"epoch": 8, "train_loss": 0.0479, "val_loss": 0.2427, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.2084, "val_delta_z_norm_mean": 1.2585, "val_delta_z_norm_max": 1.2967},
+      {"epoch": 9, "train_loss": 0.0425, "val_loss": 0.2413, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.1956, "val_delta_z_norm_mean": 1.1455, "val_delta_z_norm_max": 1.2167},
+      {"epoch": 10, "train_loss": 0.0437, "val_loss": 0.2411, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.1548, "val_delta_z_norm_mean": 1.1687, "val_delta_z_norm_max": 1.2517},
+      {"epoch": 11, "train_loss": 0.0547, "val_loss": 0.2401, "val_macro_f1": 0.8349, "train_delta_z_norm_mean": 1.1279, "val_delta_z_norm_mean": 1.0137, "val_delta_z_norm_max": 1.1434},
+      {"epoch": 12, "train_loss": 0.0499, "val_loss": 0.2412, "val_macro_f1": 0.8391, "train_delta_z_norm_mean": 1.1168, "val_delta_z_norm_mean": 1.2053, "val_delta_z_norm_max": 1.3188}
+    ]
+  },
+  "mit_b1__corn__residual_latefusion": {
+    "_note": "Per-epoch diagnostics for this variant's Colab run were lost to a merge-key bug in train.py (fixed; full per-fold epoch logs for accuracy/macro_f1/qwk are preserved in the conversation that produced them, and the aggregate per-fold results survived in exp5_results.csv + each checkpoint's .provenance.json)."
+  }
 }

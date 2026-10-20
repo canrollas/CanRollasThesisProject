@@ -1,0 +1,23 @@
+{
+  "config_id": "mit_b1__corn__tissue_only_residual",
+  "variant": "tissue_only",
+  "fold": 1,
+  "trained_at_utc": "2026-10-20T21:01:35+00:00",
+  "rgb_baseline_checkpoint": "task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold1.pt",
+  "pretraining_verification": {
+    "fusion z_rgb matches reference exactly": true,
+    "fusion z_final matches reference exactly (delta_z==0 at init)": true,
+    "delta_z is exactly zero at init": true
+  },
+  "phase": "1 (RGB branch frozen for the entire run)",
+  "early_stopped_at_epoch": 12,
+  "max_epochs": 100,
+  "patience": 10,
+  "rgb_logits_unchanged_across_training": true,
+  "residual_disabled_check_reproduces_rgb": true,
+  "nonzero_corrections_after_training": true,
+  "final_delta_z_norm_mean_test_batch": 0.342,
+  "params_m": 13.281,
+  "lr": 0.0001,
+  "seed": 42
+}

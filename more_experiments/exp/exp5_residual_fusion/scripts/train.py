@@ -53,7 +53,10 @@ from engine import fit, run_epoch  # noqa: E402
 from model import build_model, load_rgb_baseline  # noqa: E402
 from model import count_params_m  # noqa: E402
 
-CONFIG_ID = "mit_b1__corn__residual_latefusion"
+CONFIG_IDS = {
+    "rgb_tissue": "mit_b1__corn__residual_latefusion",
+    "tissue_only": "mit_b1__corn__tissue_only_residual",
+}
 RGB_BASELINE_CONFIG_ID = "mit_b1__corn"  # task_3's own config_id for this architecture
 
 
@@ -111,12 +114,20 @@ def parse_args():
                     help="comma-separated fold indices to run, e.g. '1' or '0,2' -- "
                          "default: all folds in order. Useful when only some folds' "
                          "RGB baseline checkpoints exist yet.")
+    p.add_argument("--variant", default="tissue_only", choices=["rgb_tissue", "tissue_only"],
+                    help="'tissue_only' (default, new): residual head sees ONLY tissue "
+                         "features. 'rgb_tissue' (original): residual head sees RGB+tissue "
+                         "concatenated -- diagnose_residual.py found this variant's correction "
+                         "doesn't actually depend on tissue content (cosine(real,shuffled "
+                         "tissue) ~1.0 at convergence); kept for reference, not retrained by "
+                         "default.")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
     base_cfg = load_yaml(EXP_DIR / "configs" / "base.yaml")
+    CONFIG_ID = CONFIG_IDS[args.variant]
 
     data_root = Path(args.data_root) if args.data_root else EXP_DIR / base_cfg["data_root"]
 
@@ -165,7 +176,7 @@ def main():
             data_root, fold, base_cfg, batch_size, args.workers, args.smoke
         )
 
-        model = build_model(base_cfg["encoder"], base_cfg["weights"], num_classes=num_classes)
+        model = build_model(base_cfg["encoder"], base_cfg["weights"], num_classes=num_classes, variant=args.variant)
         load_rgb_baseline(model, rgb_checkpoint_path, device)
         model.to(device)
 
@@ -215,7 +226,7 @@ def main():
         test_stats = run_epoch(model, test_loader, criterion, device, "corn", num_classes, optimizer=None)
 
         provenance = {
-            "config_id": CONFIG_ID, "fold": fold_idx,
+            "config_id": CONFIG_ID, "variant": args.variant, "fold": fold_idx,
             "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "rgb_baseline_checkpoint": str(rgb_checkpoint_path.relative_to(REPO_ROOT)),
             "pretraining_verification": checks,
@@ -255,28 +266,29 @@ def main():
     fieldnames = ["config_id", "encoder", "head", "weights", "fold", "params_m",
                   "accuracy", "macro_f1", "mae", "qwk", "early_stopped_at_epoch", "train_time_s"]
 
-    # Merge with whatever's already on disk (keyed by fold) instead of
-    # overwriting -- folds may be trained incrementally as their RGB
-    # baseline checkpoints become available one at a time.
-    existing_by_fold = {}
+    # Merge with whatever's already on disk (keyed by (config_id, fold) --
+    # NOT fold alone, since multiple variants share this one results file)
+    # instead of overwriting -- folds/variants may be trained incrementally.
+    existing_by_key = {}
     if results_csv.exists():
         with open(results_csv, newline="") as f:
             for row in csv.DictReader(f):
-                existing_by_fold[int(row["fold"])] = row
+                existing_by_key[(row["config_id"], int(row["fold"]))] = row
     for row in results_rows:
-        existing_by_fold[row["fold"]] = row
+        existing_by_key[(row["config_id"], row["fold"])] = row
 
     with open(results_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        for fold_idx in sorted(existing_by_fold):
-            writer.writerow(existing_by_fold[fold_idx])
+        for key in sorted(existing_by_key):
+            writer.writerow(existing_by_key[key])
 
     diagnostics_path = results_csv.with_name("exp5_diagnostics.json")
     existing_diagnostics = {}
     if diagnostics_path.exists():
         existing_diagnostics = json.loads(diagnostics_path.read_text())
-    existing_diagnostics.update(diagnostics_all)
+    existing_diagnostics.setdefault(CONFIG_ID, {})
+    existing_diagnostics[CONFIG_ID].update(diagnostics_all)
     with open(diagnostics_path, "w") as f:
         json.dump(existing_diagnostics, f, indent=2)
 
