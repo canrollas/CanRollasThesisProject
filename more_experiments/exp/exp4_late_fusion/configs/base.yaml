@@ -1,0 +1,60 @@
+# Experiment 4 -- late fusion of RGB and tissue-probability features (Chapter 8).
+#
+# RGB and tissue channels are encoded SEPARATELY (RGB: ImageNet MiT-B1,
+# tissue: a small 3-layer CNN) and combined only after each produces its
+# own pooled feature vector -- contrast with exp-3 (early fusion), which
+# concatenates at the input and shares one conv stack for both.
+#
+# Uses the SAME underlying data as exp-3 (datasets/wound-staging-masks-exp-3/,
+# RGB+tissue .npy pairs split apart by scripts/dataset.py instead of fed
+# through one 8-channel conv) and the SAME verified-identical PIID 3-fold
+# split, for a paired comparison against the RGB baseline and exp-3.
+#
+# fusion: concat (simple, run this first) | gated (second experiment --
+# only pursue if concat beats the RGB baseline/exp-3; see
+# scripts/model.py's GatedFusionHead). Override with --fusion.
+#
+# freeze_epochs: 0 by default -- RGB backbone trains jointly with
+# everything else from epoch 1, same single-phase protocol as the
+# baseline and exp-3, for a clean first comparison. Set > 0 (with
+# finetune_lr) to try the brief's staged freeze-then-fine-tune recipe as
+# an explicit follow-up, not the default.
+#
+# RGB arm starts from plain ImageNet weights, NOT a staging-finetuned
+# checkpoint -- task_3's own trained MiT-B1+CORN baseline has no saved
+# .pt locally (see more_experiments/README.md section 5), so there is
+# nothing to initialize from yet.
+
+encoder: mit_b1
+weights: imagenet
+fusion: concat
+freeze_epochs: 0
+finetune_lr: 0.00001
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp4_late_fusion/ (this file's
+# grandparent), matching how scripts/train.py loads them.
+data_root: ../../../datasets/wound-staging-masks-exp-3
+metadata_csv: ../../../datasets/wound-staging-masks-exp-3/metadata.csv
+
+checkpoint_dir: checkpoints
+results_csv: results/exp4_results.csv

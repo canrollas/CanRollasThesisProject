@@ -200,3 +200,48 @@ first-conv init method).
 Not yet trained for real (smoke-tested only) — `colab_train.ipynb` ready,
 dataset zipped (`datasets/wound-staging-masks-exp-3.zip`, ~144MB) for
 Drive upload.
+
+## 7. exp-4 — late fusion (RGB MiT-B1 + tissue CNN)
+
+`exp/exp4_late_fusion/` — tests the opposite hypothesis from exp-3: RGB
+and tissue information encoded by **separate** networks, combined only
+after each produces its own pooled feature vector, instead of
+concatenated at the input and run through one shared conv stack.
+
+- RGB arm: `task_3/src/model.py`'s own `Backbone` (ImageNet MiT-B1),
+  unchanged — `F_rgb = GAP(MiT-B1(rgb))`, 512-dim.
+- Tissue arm: a small 3-layer CNN (`scripts/model.py`'s `TissueCNN`) —
+  `F_tissue = GAP(CNN(tissue_5ch))`, 128-dim.
+- Fusion (`--fusion concat|gated`):
+  - `concat`: `Z = MLP([F_rgb; F_tissue])` (640→256→256), `CornHead(256)`.
+  - `gated`: `g = sigmoid(MLP_g([F_rgb; F_tissue]))`,
+    `F_fused = F_rgb + g ⊙ (W · F_tissue)`, `CornHead(512)` directly on
+    `F_fused` — lets the model learn, per sample, how much to trust a
+    given tissue prediction instead of using it at fixed strength. Only
+    worth running if `concat` beats the baseline/exp-3 first.
+- Optional staged freeze→fine-tune (`--freeze-epochs N`, off by default):
+  freezes the RGB backbone for the first N epochs (only the tissue arm +
+  fusion head train), then unfreezes and continues at a lower
+  `finetune_lr`. Off by default so the first concat-vs-baseline-vs-exp-3
+  comparison uses the same single-phase training protocol as every other
+  experiment here — not an extra confound on top of the fusion question.
+- **RGB arm starts from plain ImageNet weights**, not a staging-finetuned
+  checkpoint — task_3's own trained MiT-B1+CORN baseline has no saved
+  `.pt` locally (section 5), so there's nothing to initialize from yet.
+  Documented, not silently assumed away.
+
+Reuses exp-3's exact dataset (`datasets/wound-staging-masks-exp-3/`,
+`scripts/dataset.py` splits each `.npy` back into separate RGB/tissue
+tensors instead of concatenating) — same leakage-safe tissue predictions,
+same verified PIID split, no new data generation or leakage surface.
+`scripts/test_late_fusion_model.py` checks both fusion modes' shapes,
+finite loss, gradient flow into the tissue CNN, gradient flow into the
+RGB backbone by default, and that freezing the RGB backbone actually
+stops its gradients — all pass. Smoke-tested end to end (concat, gated,
+and gated+freeze all run cleanly); not yet trained for real.
+
+**Run order matters for interpretation**: exp-3 (early fusion) also
+hasn't been trained for real yet — both need real 3-fold numbers before
+any "early vs. late fusion" conclusion means anything. `colab_train.ipynb`
+runs concat first, gated only as a follow-up if concat looks promising,
+per the brief's own prioritization.
