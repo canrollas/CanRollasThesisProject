@@ -358,3 +358,82 @@ not genuine tissue-driven correction. Lowering the LR further (as
 originally planned as a follow-up) would likely make this worse, not
 better, given the gradient is already this weak — an open question, not
 yet resolved. **Folds 0 and 2 for `tissue_only` still needed.**
+
+## 9. exp-6 — hand-crafted tissue statistics (isolating the signal)
+
+`exp/exp6_tissue_statistics/` — steps back from a *learned* tissue
+encoder (exp-5's CNN, diagnosed with a weak/near-flat gradient) to
+simple, deterministic, hand-computed statistics, to answer a narrower
+question first: do the tissue probability maps carry *any* independent
+staging signal at all, before trying to extract it better.
+
+**Features** (`scripts/extract_tissue_features.py`): for each of the 5
+tissue classes, mean / std / 95th-percentile / fraction-above-0.5 of the
+predicted probability, computed **only over predicted wound pixels**
+(the same leakage-free Task 1 ensemble mask exp-3 used to gate the
+channels in the first place — never ground truth) → 20-dim vector per
+image. 41/1091 images with zero predicted wound pixels get an all-zero
+vector (same deterministic-missing-feature convention as exp-3/5, not a
+fabricated value). Identical preprocessing for every split — nothing
+computed per-fold or train/test-specific.
+
+### tissue_statistics_only — is there a signal at all?
+
+MLP+CORN on the 20-dim vector **alone, no RGB anywhere**
+(`scripts/train_stats_only.py`, reuses `task_3/src/engine.py` unchanged).
+3-fold result: **accuracy 0.3803 ± 0.0094, macro F1 0.3065 ± 0.0151, QWK
+0.3550 ± 0.0091**. Far below the RGB baseline (0.8168/0.8182/0.9138) —
+but clearly **above chance** (~0.25 accuracy, ~0 QWK for 4 roughly-balanced
+classes with no signal). **Answer: yes, tissue composition alone carries
+real, non-trivial independent staging signal — just much weaker than
+RGB appearance.** This is consistent with every fusion experiment so far
+only managing small corrections: there's a real but modest amount of
+extra signal to extract, not a large one being missed.
+
+### tissue_statistics_residual_fusion — fusing it in
+
+Same `z_final = z_rgb + delta_z` mechanism as exp-5, residual MLP on the
+20-dim vector instead of CNN features (`scripts/train_residual.py`,
+reuses `exp5/scripts/engine.py` unchanged). Fold 1 (only fold with a
+local baseline checkpoint): **accuracy 0.8343, macro F1 0.8350, QWK
+0.9310** — essentially matching the baseline and exp-5's best CNN result.
+
+**Tissue-shuffle ablation** (`scripts/diagnose_residual_stats.py`, same
+method as exp-5's): cosine(real, shuffled) ≈ 1.0 still, but **relative
+L2(real,shuffled)/‖delta_z‖ = 0.101** — about **20x higher** than the
+CNN-tissue variant's 0.0045. Swapping in a different image's tissue
+statistics now visibly moves the correction's magnitude, not just
+leaving it unchanged. Bypassing the CNN's weak-gradient bottleneck with
+deterministic features measurably increased content-sensitivity, even
+though the direction is still mostly stable — a genuine, if partial, step
+forward on the open question from exp-5. **Folds 0 and 2 still need
+their RGB baseline checkpoints locally to complete the 3-fold result.**
+
+### Which tissue features actually discriminate stage? (`scripts/analyze_tissue_stats.py`)
+
+One-way ANOVA per feature across Stage 1–4 (1,050 images with a detected
+wound; `tissue_statistics_anova.csv` has the full table). 17/20 features
+are significant (p<0.05), 14 at p<0.001 — consistent with the
+above-chance `tissue_statistics_only` result. Most discriminative:
+
+| Feature | F-stat | Stage 1→4 mean |
+|---|---|---|
+| `slough_std` | 146.1 | 0.225 → 0.310 → 0.370 → 0.368 |
+| `granulation_std` | 103.2 | 0.218 → 0.314 → 0.354 → 0.360 |
+| `slough_p95` | 72.1 | 0.755 → 0.876 → 0.982 → 0.970 |
+| `necrosis_std` | 30.4 | 0.060 → 0.061 → 0.127 → 0.121 |
+| `granulation_mean` | 28.0 | 0.509 → 0.535 → 0.369 → 0.431 |
+
+Within-wound *heterogeneity* of slough/granulation probability (the std
+features) is far more discriminative than their mean — clinically
+plausible (a more severe wound bed is more heterogeneous: mixed
+granulation/slough/necrosis rather than one uniform tissue). Necrosis
+std/p95 jump specifically at stage 3→4, matching the expected clinical
+picture. One caveat: `bone_mean` is statistically significant but with
+means essentially reversed from clinical expectation (highest at stage 1,
+near-zero elsewhere) while `bone_frac_above_0.5` is NOT significant
+(p=0.41) — consistent with this being a handful of noisy, low-confidence
+false-positive pixels (bone is Task 2's rarest class) rather than a real
+effect; not treated as a genuine finding. `tendon`/`bone`
+`frac_above_0.5` are the only features that don't reach significance at
+all — both rare classes with little stable per-image signal to measure.

@@ -5,4 +5,7 @@ E2,exp-2: wound only kept adaptively dilated,mit_b1,corn,3,0.7837,0.0222,0.7863,
 E3,exp-3: early fusion RGB + 5 tissue-probability channels (8ch),mit_b1,corn,3,0.7791,0.0126,0.7822,0.0116,0.8997,0.0098,more_experiments/exp/exp3_tissue_channels/results/exp3_summary.csv
 E4-concat,exp-4: late fusion RGB(ImageNet)+tissue CNN concat+MLP,mit_b1,corn,3,0.7983,0.0156,0.8003,0.0155,0.9109,0.0114,more_experiments/exp/exp4_late_fusion/results/exp4_summary.csv
 E4-gated,exp-4: late fusion RGB(ImageNet)+tissue CNN gated residual,mit_b1,corn,3,0.7957,0.0238,0.7977,0.0229,0.9063,0.0125,more_experiments/exp/exp4_late_fusion/results/exp4_summary.csv
-E5-fold1-only,exp-5: residual late fusion (frozen trained baseline + zero-init delta) -- fold 1 ONLY folds 0/2 pending,mit_b1,corn,1,0.8232,,0.8244,,0.9262,,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
+E5-rgb_tissue,exp-5: residual fusion (CNN tissue features + RGB in head) -- superseded by tissue_only,mit_b1,corn,3,0.8158,0.0073,0.8178,0.0073,0.9132,0.0122,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
+E5-tissue_only-fold1,exp-5: residual fusion (CNN tissue features, RGB excluded from head) -- fold 1 only,mit_b1,corn,1,0.8370,,0.8376,,0.9323,,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
+E6-stats_only,exp-6: MLP+CORN on 20-dim hand-crafted tissue stats ALONE (no RGB),none,corn,3,0.3803,0.0094,0.3065,0.0151,0.3550,0.0091,more_experiments/exp/exp6_tissue_statistics/results/exp6_results.csv
+E6-stats_residual-fold1,exp-6: residual fusion (20-dim hand-crafted tissue stats) -- fold 1 only,mit_b1,corn,1,0.8343,,0.8350,,0.9310,,more_experiments/exp/exp6_tissue_statistics/results/exp6_results.csv

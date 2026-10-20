@@ -1,0 +1,52 @@
+# Experiment 6 -- hand-crafted tissue statistics (Chapter 8).
+#
+# Two independent experiments, same 20-dim feature vector
+# (../tissue_statistics.csv, see scripts/extract_tissue_features.py):
+#
+#   tissue_statistics_only: MLP+CORN on the 20-dim vector ALONE, no RGB --
+#   isolates whether tissue probability maps carry any staging signal
+#   independent of appearance. scripts/train_stats_only.py.
+#
+#   tissue_statistics_residual_fusion: frozen trained RGB MiT-B1+CORN
+#   baseline + a small residual MLP on the same 20-dim vector, zero-init
+#   final layer (z_final = z_rgb + delta_z, reproduces the baseline
+#   exactly at construction -- same mechanism as exp-5).
+#   scripts/train_residual.py.
+#
+# Same verified-identical PIID 3-fold split as exp-3/4/5 (data_root below
+# is exp-3's dataset purely for its .npy file layout/fold membership --
+# RGB pixels and the stats lookup are the only things actually read from
+# it/alongside it).
+
+encoder: mit_b1
+weights: imagenet
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+max_epochs: 100
+eta_min_factor: 0.01
+patience: 10
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp6_tissue_statistics/ (this file's
+# grandparent).
+data_root: ../../../datasets/wound-staging-masks-exp-3
+feature_csv: tissue_statistics.csv
+rgb_checkpoint_template: ../../../task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold{fold}.pt
+
+checkpoint_dir: checkpoints
+results_csv: results/exp6_results.csv
