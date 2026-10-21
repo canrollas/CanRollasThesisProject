@@ -450,3 +450,144 @@ false-positive pixels (bone is Task 2's rarest class) rather than a real
 effect; not treated as a genuine finding. `tendon`/`bone`
 `frac_above_0.5` are the only features that don't reach significance at
 all — both rare classes with little stable per-image signal to measure.
+
+## 10. exp-7 — global–local ROI feature fusion (MiT-B1 + CORN)
+
+`exp/exp7_global_local_roi_fusion/` — adapts the global–local fusion
+architecture from Bayraktar et al. (2026, *Integrating Localization,
+Feature Fusion, and Attention for Pressure Ulcer Staging from Clinical
+Images*, JIIM, Fig. 4 — not the attention-enhanced Fig. 5 model). No
+tissue segmentation, depth estimation, extra large encoder, or attention
+anywhere in this experiment, per the brief.
+
+**Architecture.** `logits = fusion_head(concat(F_global, F_local))`.
+`F_global` = GAP of the frozen, trained RGB MiT-B1+CORN baseline's
+final-stage feature map (`[B,512,7,7] → [B,512]`, verified empirically,
+not assumed). `F_local` = `roi_align` over the **third** MiT-B1 stage
+(`[B,320,14,14]`, higher spatial resolution than the final stage, also
+verified empirically) at the predicted wound box, spatially average-pooled
+and projected to 128 dims. `fusion_head` is the baseline's own CornHead
+**widened** from 512→640 inputs: the 512 global columns + bias copied
+exactly, the 128 local columns zero-initialized — `fusion_logits ==
+baseline_logits` **exactly** at construction (`torch.equal`, 12/12
+architecture tests pass in `scripts/test_model.py`, re-verified against
+the real checkpoint in `scripts/train.py` before every training run).
+Phase A: MiT-B1 backbone frozen (verified via an unchanged-`f_global`
+probe-batch check after training); only `local_proj` + `fusion_head`
+train (0.043M / 13.194M params). Image/box pairs stay geometrically in
+sync under the existing hflip/vflip/rotate augmentation policy via a new
+`PairedImageBoxAugmentation` (box-corner transform formulas derived and
+empirically verified against `np.rot90`'s actual pixel mapping — see
+`scripts/augmentations.py`).
+
+**ROI generation** (`scripts/generate_roi_manifest.py`) reuses the
+already-generated leakage-free Task 1 ensemble masks
+(`datasets/wound-staging-masks/`, from `piid_crops/generate_masks_ensemble.py`
+— no staging labels or ground-truth masks used). Fixed rule: largest
+connected wound-class component → bbox in original coordinates → scaled
+independently per axis into the 224×224 staging coordinate system → +8px
+margin. 41/1091 images with zero predicted wound pixels (all stage_1 —
+confirmed, not assumed) get the full-image box as fallback, never
+excluded. `results/roi_manifest.csv`, 1091/1091 rows, 0 degenerate boxes.
+
+**Results (local sanity run, 3 folds, all baseline-preservation checks
+passed, backbone-frozen check confirmed `True` every fold):**
+
+| Metric | RGB baseline | exp-7 fusion |
+|---|---|---|
+| Accuracy | 0.8168 ± 0.0150 | 0.8120 ± 0.0098 |
+| Macro-F1 | 0.8182 ± 0.0138 | 0.8142 ± 0.0095 |
+| QWK | 0.9138 ± 0.0164 | 0.9131 ± 0.0090 |
+
+Per-fold: acc 0.7983/0.8204/0.8174, F1 0.8008/0.8224/0.8193, QWK
+0.9114/0.9249/0.9030. Essentially indistinguishable from the baseline —
+inside fold-to-fold noise, consistent with every other fusion attempt in
+this chapter (exp-3/4/5/6).
+
+**Step 8 — ROI contribution ablation** (`scripts/roi_ablation.py`,
+inference-only, same trained weights): condition A (predicted ROI) vs. B
+(full-image ROI) vs. C (shuffled ROI from a different image, fixed
+derangement, no self-pairs). **Zero prediction flips in all 3 folds, all
+3 conditions** — accuracy/F1/MAE/QWK identical to 4 decimal places
+regardless of which box is used. Per the brief's explicit criterion, this
+means **the model did not learn to use wound-specific localization
+information** — not "similar performance", literally identical
+predictions. Root cause confirmed directly (not assumed): the
+fusion-head's 128 local weight columns did move away from zero during
+training (abs-mean ≈0.0006–0.001) but stayed ~20–35× smaller than the
+512 global columns (abs-mean ≈0.023) — small enough that no image's
+local-feature contribution ever crosses a CORN decision boundary. Early
+stopping triggered at epoch 11 in every fold (patience=10), consistent
+with the best validation score being found almost immediately and never
+improved on — the same "near-zero-correction checkpoint saved at epoch
+1–2" pattern diagnosed in exp-5's original residual design.
+**Limitation, reported as required:** condition C's shuffled boxes still
+overlap the receiving image's own real box surprisingly often (IoU>0 for
+353–359/362–367 per fold, mean IoU ≈0.40–0.44) — expected, since wound
+photos are usually center-framed at similar scale — but since real,
+full-image, and shuffled conditions are all bit-identical in their
+predictions anyway, this limitation doesn't change the conclusion.
+
+**Step 9 — evaluation and error analysis** (`scripts/error_analysis.py`):
+per-class F1 ranges from 0.66 (stage_3, fold0) to 0.91 (stage_1, fold1);
+confusion matrices show the dominant error is stage_3↔stage_4 (and to a
+lesser extent stage_1↔stage_2), matching the baseline's own known
+confusion pattern (unsurprising, since fusion predictions are identical
+to the global-only pathway almost everywhere). Paired comparison vs. RGB
+baseline, pooled across folds (n=1091): both correct 871 (79.8%), RGB-only
+correct 20 (1.8%), fusion-only correct 15 (1.4%), both wrong 185 (17.0%) —
+a near-wash, 5 fewer net corrections than losses. Failed-localization
+subset (41 images, all stage_1): 100% accuracy in every fold — not a
+sign the model handles localization failure well, but a direct
+consequence of (a) failures being exclusively "easy", already-intact-skin
+stage_1 cases and (b) fusion predictions being identical to RGB-only's
+own (already-strong) stage_1 performance.
+
+**Conclusion:** the baseline-preserving zero-init mechanism and the ROI
+pipeline are both independently verified correct (architecture tests,
+real-checkpoint re-verification, frozen-backbone probe, box-transform
+empirical check) — this is not a plumbing failure. The *architecture*
+itself, at least under Phase A (frozen backbone, 0.043M trainable
+params, early-stopped at epoch 11), does not extract a usable
+localization-specific signal from the frozen MiT-B1 features: the global
+pathway already dominates the fusion head so completely that the local
+branch's learned weights stay below the threshold needed to ever change
+a prediction. This is a genuine negative result for Research Question 7,
+not an inconclusive one — the strongest and cleanest "no" among all of
+Chapter 8's fusion attempts (0 flips vs. small-but-nonzero flips/
+corrections in exp-3/4/5/6). Phase B (unfreezing the last MiT-B1 stage,
+`scripts/model.py`'s `unfreeze_last_stage()`, already implemented and
+tested) was not run, per the brief's "do not run additional architectural
+searches before evaluating Phase A" instruction.
+
+A Colab notebook (`colab_train.ipynb`) is provided to reproduce this run
+for the official record (GPU timing, not a different experiment) and to
+re-run Steps 8–9 against those checkpoints.
+
+**Scope of this negative result — exactly what is and isn't claimed:**
+
+1. Global–Local ROI Fusion did **not** beat the RGB baseline (0.8120 vs.
+   0.8168 accuracy, 0.8142 vs. 0.8182 macro-F1 — both inside the
+   baseline's own fold-to-fold noise, not a regression either).
+2. In the predicted/full-image/shuffled ROI ablation, **no single
+   per-image class prediction changed** across all 3 folds (0 flips) —
+   verified directly, not inferred from aggregate metrics alone.
+3. This result is scoped **specifically to the tested Phase A
+   architecture** — MiT-B1 backbone frozen, only `local_proj` +
+   `fusion_head` (0.043M params) trained, early-stopped at epoch 11 in
+   every fold.
+4. It does **not** establish that wound-localization information is
+   generally unhelpful for staging — only that *this* frozen-backbone,
+   zero-init-widened-head fusion design failed to extract a usable
+   signal from it. A different fusion mechanism, a different feature
+   stage, or allowing the backbone itself to adapt could behave
+   differently.
+5. **Joint fine-tuning (Phase B) was not run.** `unfreeze_last_stage()`
+   is implemented and unit-tested (`scripts/test_model.py`) but Phase B
+   training was never executed, per the brief's instruction not to run
+   additional architectural searches before Phase A was fully evaluated.
+
+**Status: Phase A complete.** Checkpoints, ROI manifest, ablation/error-
+analysis results, and this write-up are the final, preserved record for
+Chapter 8 reporting. No Phase B or new fusion architecture is queued to
+start automatically.

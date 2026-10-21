@@ -1,0 +1,27 @@
+device=mps
+
+fold0 (n=362):
+  condition       accuracy  macro_f1     mae     qwk
+  A-predicted       0.7983    0.8008  0.2044  0.9114
+  B-full_image      0.7983    0.8008  0.2044  0.9114
+  C-shuffled        0.7983    0.8008  0.2044  0.9114
+  prediction flips vs A: B=0/362  C=0/362
+  [LIMITATION] shuffled-box vs own-real-box overlap: 353/362 have IoU>0, mean IoU=0.4366
+
+fold1 (n=362):
+  condition       accuracy  macro_f1     mae     qwk
+  A-predicted       0.8204    0.8224  0.1796  0.9249
+  B-full_image      0.8204    0.8224  0.1796  0.9249
+  C-shuffled        0.8204    0.8224  0.1796  0.9249
+  prediction flips vs A: B=0/362  C=0/362
+  [LIMITATION] shuffled-box vs own-real-box overlap: 353/362 have IoU>0, mean IoU=0.4040
+
+fold2 (n=367):
+  condition       accuracy  macro_f1     mae     qwk
+  A-predicted       0.8174    0.8193  0.1962  0.9030
+  B-full_image      0.8174    0.8193  0.1962  0.9030
+  C-shuffled        0.8174    0.8193  0.1962  0.9030
+  prediction flips vs A: B=0/367  C=0/367
+  [LIMITATION] shuffled-box vs own-real-box overlap: 359/367 have IoU>0, mean IoU=0.4309
+
+wrote /Users/canrollas/Desktop/CanRollasThesisProject/more_experiments/exp/exp7_global_local_roi_fusion/results/roi_ablation_results.csv

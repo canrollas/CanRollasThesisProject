@@ -9,3 +9,4 @@ E5-rgb_tissue,exp-5: residual fusion (CNN tissue features + RGB in head) -- supe
 E5-tissue_only-fold1,exp-5: residual fusion (CNN tissue features, RGB excluded from head) -- fold 1 only,mit_b1,corn,1,0.8370,,0.8376,,0.9323,,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
 E6-stats_only,exp-6: MLP+CORN on 20-dim hand-crafted tissue stats ALONE (no RGB),none,corn,3,0.3803,0.0094,0.3065,0.0151,0.3550,0.0091,more_experiments/exp/exp6_tissue_statistics/results/exp6_results.csv
 E6-stats_residual,exp-6: residual fusion (20-dim hand-crafted tissue stats),mit_b1,corn,3,0.8159,0.0138,0.8175,0.0129,0.9131,0.0156,more_experiments/exp/exp6_tissue_statistics/results/exp6_results.csv
+E7-global_local_roi,exp-7: global-local ROI fusion (roi_align on MiT-B1 stage-3 feats, Bayraktar et al. 2026 Fig.4) -- local sanity run,mit_b1,corn,3,0.8120,0.0098,0.8142,0.0095,0.9131,0.0090,more_experiments/exp/exp7_global_local_roi_fusion/results/exp7_results.csv

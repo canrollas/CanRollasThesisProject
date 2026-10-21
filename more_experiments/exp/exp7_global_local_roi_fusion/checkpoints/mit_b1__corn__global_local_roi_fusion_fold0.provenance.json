@@ -1,0 +1,21 @@
+{
+  "config_id": "mit_b1__corn__global_local_roi_fusion",
+  "fold": 0,
+  "trained_at_utc": "2026-10-21T08:27:47+00:00",
+  "rgb_baseline_checkpoint": "task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold0.pt",
+  "pretraining_verification": {
+    "fusion f_global matches reference backbone's GAP exactly": true,
+    "fusion logits match reference logits exactly (local columns zeroed at init)": true,
+    "fusion_head local columns are exactly zero": true
+  },
+  "phase": "A (MiT-B1 backbone frozen for the entire run)",
+  "early_stopped_at_epoch": 11,
+  "max_epochs": 100,
+  "patience": 10,
+  "backbone_f_global_unchanged_across_training": true,
+  "n_failed_localizations_in_fold_test_split": 19,
+  "params_m": 13.194,
+  "trainable_params_m": 0.043,
+  "lr": 0.0001,
+  "seed": 42
+}

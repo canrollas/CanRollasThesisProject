@@ -1,0 +1,53 @@
+# Experiment 7 -- global-local ROI feature fusion (Chapter 8), adapted from
+# Bayraktar et al. (2026, Fig. 4; NOT the attention Fig. 5 model).
+#
+# logits = fusion_head(concat(F_global, F_local)), where F_global = GAP of
+# the FROZEN, trained RGB MiT-B1+CORN baseline's final-stage feature map
+# (same op as the baseline's own CornHead input) and F_local = a projected,
+# roi_align-pooled third-stage feature map over the predicted wound box.
+# fusion_head is the baseline's own CornHead widened from 512->640 inputs,
+# with the 512 global columns+bias copied exactly and the 128 local columns
+# zero-initialized -- at construction, fusion_logits == baseline_logits
+# EXACTLY (verified in scripts/test_model.py and again against the real
+# checkpoint in scripts/train.py before training starts).
+#
+# config_id: mit_b1__corn__global_local_roi_fusion
+
+encoder: mit_b1
+weights: imagenet   # only used to build the backbone's architecture; its
+                     # actual weights are overwritten by the loaded baseline checkpoint
+
+image_size: 224
+batch_size: 16
+roi_output_size: 3
+local_dim: 128
+
+lr: 0.0001
+weight_decay: 0.00001
+max_epochs: 100
+eta_min_factor: 0.01
+patience: 10         # early stopping: epochs without val macro_f1 improvement
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp7_global_local_roi_fusion/ (this
+# file's grandparent).
+data_root: ../../../datasets/wound-stage-classification
+roi_manifest_csv: results/roi_manifest.csv
+
+# Per-fold RGB baseline checkpoints -- task_3's own mit_b1__corn config,
+# trained unmodified (not retrained here). {fold} substituted with 0/1/2.
+rgb_checkpoint_template: ../../../task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold{fold}.pt
+
+checkpoint_dir: checkpoints
+results_csv: results/exp7_results.csv

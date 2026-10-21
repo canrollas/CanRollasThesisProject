@@ -1,0 +1,10 @@
+fold,condition,n,accuracy,macro_f1,mae,qwk,prediction_flips_vs_A,shuffled_box_mean_iou_vs_own_real_box,shuffled_box_overlap_fraction
+0,A-predicted,362,0.7983,0.8008,0.2044,0.9114,0,,
+0,B-full_image,362,0.7983,0.8008,0.2044,0.9114,0,,
+0,C-shuffled,362,0.7983,0.8008,0.2044,0.9114,0,0.4366,0.9751
+1,A-predicted,362,0.8204,0.8224,0.1796,0.9249,0,,
+1,B-full_image,362,0.8204,0.8224,0.1796,0.9249,0,,
+1,C-shuffled,362,0.8204,0.8224,0.1796,0.9249,0,0.404,0.9751
+2,A-predicted,367,0.8174,0.8193,0.1962,0.903,0,,
+2,B-full_image,367,0.8174,0.8193,0.1962,0.903,0,,
+2,C-shuffled,367,0.8174,0.8193,0.1962,0.903,0,0.4309,0.9782

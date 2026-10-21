@@ -1,0 +1,98 @@
+device=mps
+
+======================================================================
+FOLD 0  (n=362, failed localizations=19)
+======================================================================
+accuracy=0.7983 macro_f1=0.8008 mae=0.2044 qwk=0.9114
+
+class      precision    recall        f1   support
+stage_1       0.9437    0.8816    0.9116        76
+stage_2       0.8476    0.8558    0.8517       104
+stage_3       0.6905    0.6374    0.6629        91
+stage_4       0.7353    0.8242    0.7772        91
+
+confusion matrix (rows=true, cols=pred):
+           stage_1   stage_2   stage_3   stage_4
+stage_1         67         9         0         0
+stage_2          4        89        11         0
+stage_3          0         6        58        27
+stage_4          0         1        15        75
+
+[correctly localized] n=343 accuracy=0.7872 macro_f1=0.7931 qwk=0.8998
+
+[failed localization] n=19 accuracy=1.0000 macro_f1=0.2500 qwk=nan
+
+paired comparison vs RGB baseline (n=362):
+  RGB correct / Fusion correct     = 287 (79.3%)
+  RGB correct / Fusion incorrect   = 7 (1.9%)
+  RGB incorrect / Fusion correct   = 2 (0.6%)
+  RGB incorrect / Fusion incorrect = 66 (18.2%)
+  prediction disagreements concentrated at stage boundary (1-2,2-3,3-4): {(2, 3): 8, (1, 2): 2}
+
+======================================================================
+FOLD 1  (n=362, failed localizations=11)
+======================================================================
+accuracy=0.8204 macro_f1=0.8224 mae=0.1796 qwk=0.9249
+
+class      precision    recall        f1   support
+stage_1       0.8659    0.9342    0.8987        76
+stage_2       0.8750    0.8077    0.8400       104
+stage_3       0.7333    0.7253    0.7293        91
+stage_4       0.8085    0.8352    0.8216        91
+
+confusion matrix (rows=true, cols=pred):
+           stage_1   stage_2   stage_3   stage_4
+stage_1         71         5         0         0
+stage_2         11        84         9         0
+stage_3          0         7        66        18
+stage_4          0         0        15        76
+
+[correctly localized] n=351 accuracy=0.8148 macro_f1=0.8183 qwk=0.9199
+
+[failed localization] n=11 accuracy=1.0000 macro_f1=0.2500 qwk=nan
+
+paired comparison vs RGB baseline (n=362):
+  RGB correct / Fusion correct     = 294 (81.2%)
+  RGB correct / Fusion incorrect   = 9 (2.5%)
+  RGB incorrect / Fusion correct   = 3 (0.8%)
+  RGB incorrect / Fusion incorrect = 56 (15.5%)
+  prediction disagreements concentrated at stage boundary (1-2,2-3,3-4): {(0, 1): 1, (1, 2): 3, (2, 3): 8}
+
+======================================================================
+FOLD 2  (n=367, failed localizations=11)
+======================================================================
+accuracy=0.8174 macro_f1=0.8193 mae=0.1962 qwk=0.9030
+
+class      precision    recall        f1   support
+stage_1       0.9143    0.8205    0.8649        78
+stage_2       0.8333    0.8095    0.8213       105
+stage_3       0.7582    0.7419    0.7500        93
+stage_4       0.7885    0.9011    0.8410        91
+
+confusion matrix (rows=true, cols=pred):
+           stage_1   stage_2   stage_3   stage_4
+stage_1         64        12         1         1
+stage_2          6        85        12         2
+stage_3          0         5        69        19
+stage_4          0         0         9        82
+
+[correctly localized] n=356 accuracy=0.8118 macro_f1=0.8134 qwk=0.8962
+
+[failed localization] n=11 accuracy=1.0000 macro_f1=0.2500 qwk=nan
+
+paired comparison vs RGB baseline (n=367):
+  RGB correct / Fusion correct     = 290 (79.0%)
+  RGB correct / Fusion incorrect   = 4 (1.1%)
+  RGB incorrect / Fusion correct   = 10 (2.7%)
+  RGB incorrect / Fusion incorrect = 63 (17.2%)
+  prediction disagreements concentrated at stage boundary (1-2,2-3,3-4): {(0, 1): 1, (1, 2): 1, (2, 3): 12}
+
+======================================================================
+POOLED ACROSS ALL FOLDS (n=1091)
+======================================================================
+  both_correct = 871 (79.8%)
+  rgb_only_correct = 20 (1.8%)
+  fusion_only_correct = 15 (1.4%)
+  both_wrong = 185 (17.0%)
+
+model size: 13.194M total, 13.194M trainable (Phase A)
