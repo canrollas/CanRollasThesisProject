@@ -28,6 +28,12 @@ more_experiments/piid_crops/manifests/
 # small manifest, not a generated artifact)
 more_experiments/exp/exp9_feature_distillation/features/*.npy
 
+# exp-9 distillation run was killed after fold0 (doesn't beat baseline, not
+# pursued further -- see commit 5d4a7f6) -- its one-fold CSV would misread
+# as a completed 3-fold result if left tracked, so unlike other exp*/results/
+# it's excluded wholesale rather than just the binary artifacts.
+more_experiments/exp/exp9_feature_distillation/results/
+
 # Python
 __pycache__/
 *.pyc
