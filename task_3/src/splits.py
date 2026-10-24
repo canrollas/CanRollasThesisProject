@@ -4,8 +4,8 @@ from .dataset import CLASS_ORDER, list_samples
 
 
 def build_folds(data_root, num_folds=3, val_fraction=0.1, seed=42):
-    """Stratified version of task_1/task_2's shuffle-then-chunk protocol:
-    each class is shuffled and chunked independently (fixed per-class seed),
+    """Per-class stratified shuffle-then-chunk split: each class is shuffled
+    and chunked independently (fixed per-class seed),
     then per-class chunks are concatenated into num_folds overall chunks.
     Keeps each fold's class balance close to the full dataset's (230/313/
     275/273 for stage_1..stage_4) instead of letting one global shuffle

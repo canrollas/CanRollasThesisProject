@@ -37,10 +37,10 @@ The work is split into three tasks, each backed by its own dataset:
 │   ├── check_compatibility.py  # Resolves the architecture/encoder grid into valid configs
 │   ├── run_ablation.py         # Trains + evaluates every (config, fold) combination
 │   └── run_efficiency.py       # Measures params and inference latency per config
-├── task_2/              # Wound tissue segmentation pipeline (top-10 configs, 3-fold)
-│   ├── configs/         # Hand-picked top-10 (architecture, encoder, weights) + training hyperparameters
-│   ├── src/             # Dataset, models, void-aware losses/metrics, training engine
-│   ├── build_selected_configs.py  # Resolves configs/selected.yaml into selected_configs.json
+├── task_2/              # Wound tissue segmentation pipeline (37-config grid, stratified 3-fold)
+│   ├── configs/         # Full 37 (architecture, encoder, weights) grid + training hyperparameters
+│   ├── src/             # Dataset, models, void-aware losses/metrics, stratified splits, training engine
+│   ├── build_grid.py              # Resolves configs/grid.yaml into configs/resolved_grid.json
 │   ├── run_ablation.py            # Trains + evaluates every (config, fold) combination
 │   └── run_efficiency.py          # Measures params and inference latency per config
 └── task_3/              # Wound stage classification pipeline (encoder x head ablation, 3-fold)
@@ -119,24 +119,36 @@ sessions, and previews the saved sample panels inline.
 
 ## Task 2 — Wound Tissue Segmentation
 
-Re-runs the 10 best-performing configurations from the paper's 37-config
-intra-wound tissue segmentation benchmark (`Deep-Learning-Konf.pdf`, Table 5)
-on this project's `wound-tissue-segmentation` dataset, under the same 3-fold
-protocol, to verify they reproduce on this data before committing further
-compute to the full 37-config grid.
+Runs the full 37-config intra-wound tissue segmentation benchmark
+(architecture x encoder x weights, pre-filtered for SMP v0.5.0
+compatibility) on this project's `wound-tissue-segmentation` dataset.
+The grid and the split protocol below were ported from an earlier,
+standalone benchmarking project that ran this same 37-config x 3-fold
+grid on this exact dataset — but that run predates a fix for a
+process-local hash-seed bug that silently leaked train images into the
+test set, so its numbers are not reused here; see
+[`task_2/results/legacy/README.md`](task_2/results/legacy/README.md)
+(local only, not tracked in git) for the full story. Only the
+corrected split code and the grid definition were carried over — this
+task's own results come from running the grid fresh.
 
-- **Selected configs (ranked by the paper's reported mIoU):** MA-Net&MiT-B2,
-  U-Net&MiT-B1, U-Net&MiT-B2, U-Net&ResNet-50(SSL), MA-Net&ResNet-34,
-  DeepLabV3&ResNet-50(SWSL), U-Net&ResNet-34, DeepLabV3+&MiT-B3,
-  U-Net++&ResNet-50, LinkNet&ResNet-34 — see
-  [`task_2/configs/selected.yaml`](task_2/configs/selected.yaml)
+- **Grid:** 37 (architecture, encoder, weights) combinations — see
+  [`task_2/configs/grid.yaml`](task_2/configs/grid.yaml). Ten of them are
+  also the paper's top-10 ranked picks from its 37-config Table 5
+  benchmark (`Deep-Learning-Konf.pdf`), annotated with `paper_miou` for
+  reference
 - **Classes:** granulation, slough/fibrin, necrosis, tendon, bone — the last
   two aren't in the paper's original 3-class setup, but this dataset
   annotates them, so they're trained and scored like the rest.
   `outside_wound` and `skin_remnant` pixels are treated as void (excluded
   from loss and metrics)
-- **Evaluation:** 3-fold cross-validation (paper protocol: shuffle once with
-  a fixed seed, split into 3 consecutive chunks), mIoU / mDice per class
+- **Evaluation:** 3-fold cross-validation, **stratified by tissue-class
+  presence** (each image's fold is balanced on which classes its mask
+  contains, rarest first, so rare classes like tendon/bone don't land
+  unevenly by chance), mIoU / mDice per class. Per-stratum shuffles use an
+  md5-based seed that's stable across processes — a plain `hash()`-based
+  seed is *not* stable under Python's per-process hash randomization,
+  which is exactly the bug that invalidated the legacy run above
 - **Loss:** combined cross-entropy + Dice, both void-aware (`ignore_index`)
 - **Augmentation:** horizontal/vertical flip, 90/180/270° rotation
 
@@ -147,9 +159,9 @@ cd task_2
 python -m venv .venv && source .venv/bin/activate   # or reuse task_1/.venv
 pip install -r requirements.txt
 
-python build_selected_configs.py   # resolves configs/selected.yaml -> configs/selected_configs.json
-python run_ablation.py             # trains + evaluates every (config, fold) -> results/ablation_results.csv
-python run_efficiency.py           # params + latency per config -> results/efficiency.csv
+python build_grid.py       # resolves configs/grid.yaml -> configs/resolved_grid.json
+python run_ablation.py     # trains + evaluates every (config, fold) -> results/ablation_results.csv
+python run_efficiency.py   # params + latency per config -> results/efficiency.csv
 ```
 
 Same interrupt/resume behavior as `task_1/run_ablation.py`:

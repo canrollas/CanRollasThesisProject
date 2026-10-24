@@ -1,6 +1,6 @@
 import segmentation_models_pytorch as smp
 
-# Only the architectures used by configs/selected.yaml's top-10 picks.
+# The architectures used by configs/grid.yaml's 37-config benchmark matrix.
 ARCH_MAP = {
     "unet": smp.Unet,
     "unetplusplus": smp.UnetPlusPlus,
@@ -8,6 +8,9 @@ ARCH_MAP = {
     "deeplabv3": smp.DeepLabV3,
     "deeplabv3plus": smp.DeepLabV3Plus,
     "linknet": smp.Linknet,
+    "fpn": smp.FPN,
+    "pspnet": smp.PSPNet,
+    "pan": smp.PAN,
 }
 
 

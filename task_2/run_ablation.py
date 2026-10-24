@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Stage-2 intra-wound tissue segmentation ablation runner.
 
-Trains + evaluates the 10 top-ranked (architecture, encoder, weights)
-configs from configs/selected_configs.json (picked from the paper's 37-config
-Table 5 benchmark) under 3-fold cross-validation on this project's
+Trains + evaluate all 37 (architecture, encoder, weights) configs from
+configs/resolved_grid.json under 3-fold cross-validation (stratified by
+tissue-class presence, see src/splits.py) on this project's
 wound-tissue-segmentation dataset. For every (config, fold) pair not already
-present in the results CSV, trains on that fold's train/val split, evaluates
-on the held-out test fold, and appends one row to the results CSV. Safe to
+present in the result CSV, trains on that fold's train/val split, evaluates
+on the held-out test fold, and appends one row to the result CSV. Safe to
 interrupt and re-run (already-completed rows are skipped), so the grid can be
 worked through across multiple Colab sessions.
 """
@@ -63,8 +63,8 @@ def parse_args():
     p.add_argument("--batch", type=int, default=None)
     p.add_argument("--epochs", type=int, default=None)
     p.add_argument("--configs", default=None,
-                    help="comma-separated config_id allowlist (from configs/selected_configs.json), "
-                         "e.g. 'unet__mit_b2__imagenet,manet__mit_b2__imagenet' -- default: all 10")
+                    help="comma-separated config_id allowlist (from configs/resolved_grid.json), "
+                         "e.g. 'unet__mit_b2__imagenet,manet__mit_b2__imagenet' -- default: all 37")
     p.add_argument("--smoke", action="store_true", help="1 config, 1 fold, 2 epochs, tiny subset")
     return p.parse_args()
 
@@ -72,9 +72,9 @@ def parse_args():
 def main():
     args = parse_args()
     base_cfg = load_yaml(TASK_DIR / "configs" / "base.yaml")
-    resolved_path = TASK_DIR / "configs" / "selected_configs.json"
+    resolved_path = TASK_DIR / "configs" / "resolved_grid.json"
     if not resolved_path.exists():
-        raise SystemExit("configs/selected_configs.json not found — run build_selected_configs.py first")
+        raise SystemExit("configs/resolved_grid.json not found — run build_grid.py first")
     grid = json.loads(resolved_path.read_text())
 
     if args.configs is not None:
@@ -82,7 +82,7 @@ def main():
         by_id = {c["config_id"]: c for c in grid}
         missing = [c for c in wanted if c not in by_id]
         if missing:
-            raise SystemExit(f"--configs: unknown config_id(s) not in selected_configs.json: {missing}")
+            raise SystemExit(f"--configs: unknown config_id(s) not in resolved_grid.json: {missing}")
         grid = [by_id[c] for c in wanted]
     if args.smoke:
         grid = grid[:1]
@@ -92,7 +92,7 @@ def main():
     colors = load_color_mapping(data_root)
 
     set_seed(base_cfg["seed"])
-    folds = build_folds(data_root, base_cfg["num_folds"], base_cfg["val_fraction"], base_cfg["seed"])
+    folds = build_folds(data_root, colors, base_cfg["num_folds"], base_cfg["val_fraction"], base_cfg["seed"])
     if args.smoke:
         folds = folds[:1]
 

@@ -1,0 +1,69 @@
+# Full 37-config (architecture, encoder, weights) benchmark matrix, ported
+# from the segmentation-benchmarking project's config.py BENCHMARK_MATRIX.
+# Incompatible combos (confirmed by SMP v0.5.0) are already excluded:
+#   UnetPlusPlus + mit_b*    -> "not support encoder_name=mit_b*"
+#   Linknet      + mit_b*    -> "Encoder mit_b* is not supported"
+#   DeepLabV3(+) + xception  -> "does not support dilated mode"
+#   DeepLabV3(+) + densenet* -> "does not support dilated mode"
+#   PAN          + xception  -> "does not support dilated mode"
+#   PAN          + densenet* -> "does not support dilated mode"
+#
+# paper_miou (where present) is the paper's Table 5 reported mIoU on their
+# 568-image clinical dataset, for the 10 configs the paper ranks highest --
+# reference only, not reproduced automatically. The other 27 configs have no
+# published reference number.
+configs:
+  # -- Unet --
+  - {architecture: unet, encoder: resnet18, weights: imagenet}
+  - {architecture: unet, encoder: resnet34, weights: imagenet, paper_miou: 0.7135}
+  - {architecture: unet, encoder: resnet50, weights: imagenet}
+  - {architecture: unet, encoder: resnet50, weights: ssl, paper_miou: 0.7153}
+  - {architecture: unet, encoder: resnet50, weights: swsl}
+  - {architecture: unet, encoder: efficientnet-b0, weights: imagenet}
+  - {architecture: unet, encoder: efficientnet-b3, weights: imagenet}
+  - {architecture: unet, encoder: efficientnet-b4, weights: imagenet}
+  - {architecture: unet, encoder: mobilenet_v2, weights: imagenet}
+  - {architecture: unet, encoder: densenet121, weights: imagenet}
+  - {architecture: unet, encoder: mit_b1, weights: imagenet, paper_miou: 0.7203}
+  - {architecture: unet, encoder: mit_b2, weights: imagenet, paper_miou: 0.7176}
+
+  # -- UnetPlusPlus --
+  - {architecture: unetplusplus, encoder: resnet34, weights: imagenet}
+  - {architecture: unetplusplus, encoder: resnet50, weights: imagenet, paper_miou: 0.7119}
+  - {architecture: unetplusplus, encoder: efficientnet-b3, weights: imagenet}
+  - {architecture: unetplusplus, encoder: densenet121, weights: imagenet}
+
+  # -- FPN --
+  - {architecture: fpn, encoder: resnet34, weights: imagenet}
+  - {architecture: fpn, encoder: resnet50, weights: imagenet}
+  - {architecture: fpn, encoder: resnext50_32x4d, weights: imagenet}
+  - {architecture: fpn, encoder: efficientnet-b4, weights: imagenet}
+  - {architecture: fpn, encoder: mit_b2, weights: imagenet}
+
+  # -- DeepLabV3Plus --
+  - {architecture: deeplabv3plus, encoder: resnet50, weights: imagenet}
+  - {architecture: deeplabv3plus, encoder: resnet50, weights: swsl}
+  - {architecture: deeplabv3plus, encoder: efficientnet-b3, weights: imagenet}
+  - {architecture: deeplabv3plus, encoder: mit_b3, weights: imagenet, paper_miou: 0.7131}
+
+  # -- MAnet --
+  - {architecture: manet, encoder: resnet34, weights: imagenet, paper_miou: 0.7153}
+  - {architecture: manet, encoder: resnet50, weights: imagenet}
+  - {architecture: manet, encoder: efficientnet-b3, weights: imagenet}
+  - {architecture: manet, encoder: mit_b2, weights: imagenet, paper_miou: 0.7263}
+
+  # -- Linknet --
+  - {architecture: linknet, encoder: resnet34, weights: imagenet, paper_miou: 0.7114}
+  - {architecture: linknet, encoder: resnet50, weights: imagenet}
+
+  # -- PAN --
+  - {architecture: pan, encoder: resnet34, weights: imagenet}
+  - {architecture: pan, encoder: efficientnet-b3, weights: imagenet}
+
+  # -- PSPNet --
+  - {architecture: pspnet, encoder: resnet34, weights: imagenet}
+  - {architecture: pspnet, encoder: resnet50, weights: imagenet}
+
+  # -- DeepLabV3 --
+  - {architecture: deeplabv3, encoder: resnet50, weights: imagenet}
+  - {architecture: deeplabv3, encoder: resnet50, weights: swsl, paper_miou: 0.7148}

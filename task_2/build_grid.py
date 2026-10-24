@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Resolves configs/selected.yaml into configs/selected_configs.json.
+"""Resolves configs/grid.yaml into configs/resolved_grid.json.
 
 Unlike task_1's check_compatibility.py (which dry-runs a full architecture x
-encoder grid to discover which pairs are valid), this task starts from a
-hand-picked top-10 list (the best configs from the paper's 37-config Table 5
-benchmark) that's already known to be SMP-compatible. This script still
-dry-runs each pick with a dummy batch to fail loudly on a typo, and records
-each config's parameter count. Must be run once before run_ablation.py /
-run_efficiency.py.
+encoder grid to discover which pairs are valid), this task's grid.yaml is
+already a pre-filtered list of the 37 (architecture, encoder, weights) combos
+confirmed compatible with SMP v0.5.0 (ported from the segmentation-benchmarking
+project's BENCHMARK_MATRIX). This script still dry-runs each one with a dummy
+batch to fail loudly on a typo and records each config's parameter count.
+Must be run once before run_ablation.py / run_efficiency.py.
 """
 import json
 import sys
@@ -23,11 +23,11 @@ from src.utils import load_yaml  # noqa: E402
 
 
 def main():
-    selected = load_yaml(TASK_DIR / "configs" / "selected.yaml")["configs"]
+    grid = load_yaml(TASK_DIR / "configs" / "grid.yaml")["configs"]
     num_classes = len(load_yaml(TASK_DIR / "configs" / "base.yaml")["classes"])
 
     resolved = []
-    for entry in selected:
+    for entry in grid:
         arch, encoder, weights = entry["architecture"], entry["encoder"], entry["weights"]
         model = build_model(arch, encoder, None, num_classes=num_classes)
         model.eval()
@@ -44,7 +44,7 @@ def main():
             "paper_miou": entry.get("paper_miou"),
         })
 
-    out_path = TASK_DIR / "configs" / "selected_configs.json"
+    out_path = TASK_DIR / "configs" / "resolved_grid.json"
     out_path.write_text(json.dumps(resolved, indent=2))
     print(f"Resolved {len(resolved)} configs -> {out_path}")
     for c in resolved:

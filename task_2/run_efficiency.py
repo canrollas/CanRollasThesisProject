@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Measures params(M) and single-image inference latency (ms) for each of
-the 10 selected configs in configs/selected_configs.json. Run after
-build_selected_configs.py.
+the 37 configs in configs/resolved_grid.json. Run after build_grid.py.
 """
 import csv
 import json
@@ -18,9 +17,9 @@ from src.utils import get_device, load_yaml  # noqa: E402
 
 def main():
     base_cfg = load_yaml(TASK_DIR / "configs" / "base.yaml")
-    resolved_path = TASK_DIR / "configs" / "selected_configs.json"
+    resolved_path = TASK_DIR / "configs" / "resolved_grid.json"
     if not resolved_path.exists():
-        raise SystemExit("configs/selected_configs.json not found — run build_selected_configs.py first")
+        raise SystemExit("configs/resolved_grid.json not found — run build_grid.py first")
     grid = json.loads(resolved_path.read_text())
 
     device = get_device()
