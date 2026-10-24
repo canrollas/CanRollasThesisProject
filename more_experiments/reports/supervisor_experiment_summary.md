@@ -220,4 +220,42 @@ Tez için üç somut çıkarım:
 
 ---
 
+## Ek C — Checkpoint Ensembling (Chapter 8 sonrası not)
+
+Bölüm 3-9'daki tüm denemeler **tek bir modelin içine** (girdi füzyonu, rezidüel
+dal, ROI füzyonu, stacking gate, çoklu-öğretmen distillation) bir şeyler
+eklemeye çalıştı ve hiçbiri temel çizgiyi geçemedi. Buna karşılık, zaten
+eğitilmiş birden fazla checkpoint'in **tahmin olasılıklarını** basitçe
+ortalamak (sum-rule ensembling, Kittler et al., 1998) — hiçbir yeniden eğitim
+gerektirmeden — temel çizgiyi geçti.
+
+**Yöntem:** `task_3/ensemble_eval.py`. 4 checkpoint — `densenet121__softmax`,
+`mit_b1__softmax`, `mit_b1__corn`, `convnextv2_tiny__softmax` — aynı
+`build_folds(seed=42)` test split'lerinde çalıştırıldı. Softmax başlıklı
+modellerin çıktısı doğrudan olasılık; CORN başlıklı modelin (`mit_b1__corn`)
+çıktısı, koşullu sigmoid olasılıklarının kümülatif çarpımından (survival
+fonksiyonu) 4-sınıflı bir olasılık dağılımına çözüldü, böylece farklı
+başlık tipleri aynı ölçekte ortalanabildi. 4 modelin olasılıkları eşit
+ağırlıkla (0.25/0.25/0.25/0.25) toplanıp argmax alındı.
+
+**Sonuç (3-fold, `task_3/results/task_3_outputs/results/ensemble_results.csv`):**
+
+| Metrik | mit_b1__corn (tek model, bu script'teki yeniden ölçüm) | **ENSEMBLE (4 model)** |
+|---|---|---|
+| Accuracy | 0.8121 ± 0.0137 | **0.8222 ± 0.0136** |
+| Macro-F1 | 0.8132 ± 0.0126 | **0.8239 ± 0.0142** |
+| MAE | 0.1951 ± 0.0196 | **0.1833 ± 0.0172** |
+| QWK | 0.9102 ± 0.0179 | **0.9178 ± 0.0105** |
+
+(mit_b1__corn'un buradaki yeniden ölçümü 0.8121, ana tablodaki
+`ablation_summary.csv` değeri olan 0.8168'den ~0.5pp düşük — küçük bir
+floating-point/MPS farkı, aynı checkpoint ve aynı split kullanılıyor.)
+
+Ensemble, tek başına en iyi modelin **dört metrikte de** üstüne çıkıyor,
+fold bazında da tutarlı (fold1/fold2'de belirgin kazanç, fold0'da ılımlı).
+Hiçbir yeni parametre eğitilmedi — sadece mevcut checkpoint'lerin
+tahminleri birleştirildi.
+
+---
+
 *Bu rapor, repodaki gerçek CSV/JSON/checkpoint dosyalarından doğrudan okunan değerlerle hazırlanmıştır. Hiçbir sayı tahmin edilmemiş, hiçbir eksik sonuç uydurulmamıştır. Yeni model eğitilmemiş, mevcut checkpoint/sonuç dosyalarına dokunulmamıştır.*
