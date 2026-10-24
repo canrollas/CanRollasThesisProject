@@ -39,7 +39,7 @@ head: corn
 weights: imagenet
 in_channels: 4
 
-image_size: 224
+image_size: 384
 batch_size: 16
 
 lr: 0.0001
