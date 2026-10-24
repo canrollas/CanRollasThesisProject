@@ -1,0 +1,69 @@
+# Experiment 3.1 -- RGB + 1 severity-banded tissue channel (Chapter 8).
+#
+# Variant of exp-3: instead of 5 separate per-class tissue-probability
+# channels, collapses them into a SINGLE channel that encodes both which
+# tissue class dominates a pixel AND how confident that prediction is.
+#
+# Same backbone/head/protocol as task_3's best config (mit_b1 + CORN,
+# confirmed best in task_3/results/task_3_outputs/results/ablation_summary.csv)
+# and the same wound-localisation + Task-2 tissue-classification pipeline
+# as exp-3, trained on datasets/wound-staging-masks-exp-3-1/ (4-channel
+# .npy: full uncropped RGB + 1 tissue-severity channel, zeroed where no
+# wound was found; see scripts/generate_dataset.py).
+#
+# Severity-channel encoding (see scripts/generate_dataset.py
+# encode_severity_channel() for the exact formula):
+#   0       -- no wound detected (missing-feature signal, same convention
+#              as exp-3's all-zero tissue channels)
+#   1-255   -- split into 5 equal ~51-wide bands, one per Task 2 class, in
+#              CLASS_ORDER's severity order (granulation < slough <
+#              necrosis < tendon < bone): band = argmax class, position
+#              within the band = that class's softmax confidence. So the
+#              channel jointly encodes "which tissue" (band) and "how sure"
+#              (position in band).
+#
+# That dataset has the exact same stage_X/<file> layout as exp-3 (just a
+# different data_root), so task_3/src/splits.py's own build_folds()
+# reproduces the ORIGINAL PIID 3-fold split assignments exactly, for a
+# paired comparison against exp-3 (5-channel) and the RGB baseline.
+#
+# Model/dataset code is NOT task_3/src's (3-channel, JPEG) or exp-3's
+# (hardcoded to 5 tissue channels) -- see scripts/model.py (reused from
+# exp-3 unchanged, it's already in_channels-generic) and scripts/dataset.py
+# (generalized to any tissue-channel count) for the 4-channel versions.
+# Everything else (engine/losses/metrics/splits/augmentations/utils) is
+# reused from task_3/src unchanged.
+
+encoder: mit_b1
+head: corn
+weights: imagenet
+in_channels: 4
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp3_1_tissue_single_channel/ (this
+# file's grandparent), matching how scripts/train.py loads them -- not
+# relative to configs/.
+data_root: ../../../datasets/wound-staging-masks-exp-3-1
+metadata_csv: ../../../datasets/wound-staging-masks-exp-3-1/metadata.csv
+
+checkpoint_dir: checkpoints
+results_csv: results/exp3_1_results.csv

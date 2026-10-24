@@ -1,0 +1,205 @@
+device=mps
+RGB data root:    /Users/canrollas/Desktop/CanRollasThesisProject/datasets/wound-stage-classification
+Tissue data root: /Users/canrollas/Desktop/CanRollasThesisProject/more_experiments/exp/exp6_tissue_statistics/../../../datasets/wound-staging-masks-exp-3
+
+======================================================================
+FOLD 0  (n=362)
+======================================================================
+group                      n       %
+both_correct             106   29.3%
+rgb_only_correct         188   51.9%
+tissue_only_correct       33    9.1%
+both_wrong                35    9.7%
+
+RGB accuracy (this analysis)    = 294/362 = 0.8122
+Tissue accuracy (this analysis) = 139/362 = 0.3840
+P(tissue correct | RGB wrong)   = 33/68 = 0.4853
+P(RGB correct | tissue wrong)   = 188/223 = 0.8430
+error overlap: fraction of RGB's 68 errors tissue ALSO misses    = 0.5147
+error overlap: fraction of tissue's 223 errors RGB ALSO misses = 0.1570
+
+[THEORETICAL UPPER BOUND ONLY -- not an achievable model, uses true labels to pick]
+oracle selection accuracy (correct if EITHER model is correct) = 327/362 = 0.9033
+
+tissue_statistics_only vs majority-class baseline (majority class = stage_2, from this fold's train split):
+  majority-baseline accuracy = 0.2873
+  class        majority F1  tissue-only F1
+  stage_1           0.0000          0.4356
+  stage_2           0.4464          0.3687
+  stage_3           0.0000          0.4759
+  stage_4           0.0000          0.0000
+
+RGB-wrong / Tissue-correct cases (33):
+  stem                    true      rgb_pred  tissue_pred 
+  stage_2_2077            stage_2   stage_1   stage_2     
+  stage_2_3767            stage_2   stage_3   stage_2     
+  stage_2_5226            stage_2   stage_1   stage_2     
+  stage_2_63592           stage_2   stage_3   stage_2     
+  stage_2_27376           stage_2   stage_3   stage_2     
+  stage_2_2630            stage_2   stage_1   stage_2     
+  stage_3_31161           stage_3   stage_4   stage_3     
+  stage_3_74692           stage_3   stage_4   stage_3     
+  stage_3_34702           stage_3   stage_4   stage_3     
+  stage_3_4540            stage_3   stage_2   stage_3     
+  stage_3_28830           stage_3   stage_4   stage_3     
+  stage_3_42257           stage_3   stage_4   stage_3     
+  stage_3_86929           stage_3   stage_4   stage_3     
+  stage_3_2602            stage_3   stage_4   stage_3     
+  stage_3_32168           stage_3   stage_4   stage_3     
+  stage_3_11737           stage_3   stage_4   stage_3     
+  stage_3_28196           stage_3   stage_4   stage_3     
+  stage_3_31319           stage_3   stage_4   stage_3     
+  stage_3_90185           stage_3   stage_4   stage_3     
+  stage_3_36345           stage_3   stage_4   stage_3     
+  stage_3_49822           stage_3   stage_4   stage_3     
+  stage_3_26165           stage_3   stage_4   stage_3     
+  stage_3_40188           stage_3   stage_4   stage_3     
+  stage_3_35212           stage_3   stage_4   stage_3     
+  stage_3_3705            stage_3   stage_4   stage_3     
+  stage_3_83908           stage_3   stage_2   stage_3     
+  stage_3_71562           stage_3   stage_2   stage_3     
+  stage_3_19639           stage_3   stage_4   stage_3     
+  stage_3_80922           stage_3   stage_2   stage_3     
+  stage_3_82676           stage_3   stage_4   stage_3     
+  stage_3_44531           stage_3   stage_4   stage_3     
+  stage_3_94540           stage_3   stage_4   stage_3     
+  stage_3_10062           stage_3   stage_4   stage_3     
+  true-stage distribution: {'stage_2': 6, 'stage_3': 27}
+  RGB's mistake pattern (true->rgb_pred): {'stage_2->stage_1': 3, 'stage_2->stage_3': 3, 'stage_3->stage_4': 23, 'stage_3->stage_2': 4}
+
+======================================================================
+FOLD 1  (n=362)
+======================================================================
+group                      n       %
+both_correct             106   29.3%
+rgb_only_correct         197   54.4%
+tissue_only_correct       27    7.5%
+both_wrong                32    8.8%
+
+RGB accuracy (this analysis)    = 303/362 = 0.8370
+Tissue accuracy (this analysis) = 133/362 = 0.3674
+P(tissue correct | RGB wrong)   = 27/59 = 0.4576
+P(RGB correct | tissue wrong)   = 197/229 = 0.8603
+error overlap: fraction of RGB's 59 errors tissue ALSO misses    = 0.5424
+error overlap: fraction of tissue's 229 errors RGB ALSO misses = 0.1397
+
+[THEORETICAL UPPER BOUND ONLY -- not an achievable model, uses true labels to pick]
+oracle selection accuracy (correct if EITHER model is correct) = 330/362 = 0.9116
+
+tissue_statistics_only vs majority-class baseline (majority class = stage_2, from this fold's train split):
+  majority-baseline accuracy = 0.2873
+  class        majority F1  tissue-only F1
+  stage_1           0.0000          0.2529
+  stage_2           0.4464          0.4232
+  stage_3           0.0000          0.4656
+  stage_4           0.0000          0.0000
+
+RGB-wrong / Tissue-correct cases (27):
+  stem                    true      rgb_pred  tissue_pred 
+  stage_2_53256           stage_2   stage_1   stage_2     
+  stage_2_13698           stage_2   stage_1   stage_2     
+  stage_2_62883           stage_2   stage_3   stage_2     
+  stage_2_11938           stage_2   stage_1   stage_2     
+  stage_2_2464            stage_2   stage_1   stage_2     
+  stage_2_45221           stage_2   stage_1   stage_2     
+  stage_3_36667           stage_3   stage_2   stage_3     
+  stage_3_1908            stage_3   stage_2   stage_3     
+  stage_3_33267           stage_3   stage_4   stage_3     
+  stage_3_36453           stage_3   stage_4   stage_3     
+  stage_3_85164           stage_3   stage_4   stage_3     
+  stage_3_2962            stage_3   stage_2   stage_3     
+  stage_3_21164           stage_3   stage_4   stage_3     
+  stage_3_31033           stage_3   stage_4   stage_3     
+  stage_3_4172            stage_3   stage_4   stage_3     
+  stage_3_43954           stage_3   stage_4   stage_3     
+  stage_3_79173           stage_3   stage_4   stage_3     
+  stage_3_44976           stage_3   stage_2   stage_3     
+  stage_3_69226           stage_3   stage_4   stage_3     
+  stage_3_78431           stage_3   stage_4   stage_3     
+  stage_3_87205           stage_3   stage_4   stage_3     
+  stage_3_89382           stage_3   stage_4   stage_3     
+  stage_3_58111           stage_3   stage_4   stage_3     
+  stage_3_21239           stage_3   stage_4   stage_3     
+  stage_3_83879           stage_3   stage_4   stage_3     
+  stage_3_55779           stage_3   stage_4   stage_3     
+  stage_3_93848           stage_3   stage_4   stage_3     
+  true-stage distribution: {'stage_2': 6, 'stage_3': 21}
+  RGB's mistake pattern (true->rgb_pred): {'stage_2->stage_1': 5, 'stage_2->stage_3': 1, 'stage_3->stage_2': 4, 'stage_3->stage_4': 17}
+
+======================================================================
+FOLD 2  (n=367)
+======================================================================
+group                      n       %
+both_correct             116   31.6%
+rgb_only_correct         178   48.5%
+tissue_only_correct       27    7.4%
+both_wrong                46   12.5%
+
+RGB accuracy (this analysis)    = 294/367 = 0.8011
+Tissue accuracy (this analysis) = 143/367 = 0.3896
+P(tissue correct | RGB wrong)   = 27/73 = 0.3699
+P(RGB correct | tissue wrong)   = 178/224 = 0.7946
+error overlap: fraction of RGB's 73 errors tissue ALSO misses    = 0.6301
+error overlap: fraction of tissue's 224 errors RGB ALSO misses = 0.2054
+
+[THEORETICAL UPPER BOUND ONLY -- not an achievable model, uses true labels to pick]
+oracle selection accuracy (correct if EITHER model is correct) = 321/367 = 0.8747
+
+tissue_statistics_only vs majority-class baseline (majority class = stage_2, from this fold's train split):
+  majority-baseline accuracy = 0.2861
+  class        majority F1  tissue-only F1
+  stage_1           0.0000          0.3600
+  stage_2           0.4449          0.3981
+  stage_3           0.0000          0.4985
+  stage_4           0.0000          0.0000
+
+RGB-wrong / Tissue-correct cases (27):
+  stem                    true      rgb_pred  tissue_pred 
+  stage_1_93627           stage_1   stage_2   stage_1     
+  stage_1_79424           stage_1   stage_2   stage_1     
+  stage_2_92784           stage_2   stage_3   stage_2     
+  stage_2_78569           stage_2   stage_1   stage_2     
+  stage_2_4946            stage_2   stage_1   stage_2     
+  stage_2_70380           stage_2   stage_3   stage_2     
+  stage_2_7919            stage_2   stage_1   stage_2     
+  stage_2_6212            stage_2   stage_3   stage_2     
+  stage_3_49000           stage_3   stage_4   stage_3     
+  stage_3_65287           stage_3   stage_4   stage_3     
+  stage_3_41615           stage_3   stage_4   stage_3     
+  stage_3_95237           stage_3   stage_4   stage_3     
+  stage_3_39590           stage_3   stage_4   stage_3     
+  stage_3_57592           stage_3   stage_4   stage_3     
+  stage_3_92605           stage_3   stage_4   stage_3     
+  stage_3_12724           stage_3   stage_4   stage_3     
+  stage_3_64651           stage_3   stage_2   stage_3     
+  stage_3_71679           stage_3   stage_4   stage_3     
+  stage_3_19044           stage_3   stage_4   stage_3     
+  stage_3_33116           stage_3   stage_4   stage_3     
+  stage_3_75912           stage_3   stage_4   stage_3     
+  stage_3_20010           stage_3   stage_4   stage_3     
+  stage_3_54901           stage_3   stage_2   stage_3     
+  stage_3_29601           stage_3   stage_4   stage_3     
+  stage_3_19471           stage_3   stage_2   stage_3     
+  stage_3_31816           stage_3   stage_4   stage_3     
+  stage_3_97550           stage_3   stage_4   stage_3     
+  true-stage distribution: {'stage_1': 2, 'stage_2': 6, 'stage_3': 19}
+  RGB's mistake pattern (true->rgb_pred): {'stage_1->stage_2': 2, 'stage_2->stage_3': 3, 'stage_2->stage_1': 3, 'stage_3->stage_4': 16, 'stage_3->stage_2': 3}
+
+======================================================================
+POOLED ACROSS ALL 3 FOLDS (n=1091)
+======================================================================
+P(tissue correct | RGB wrong) = 87/200 = 0.4350
+fraction of RGB's errors tissue ALSO misses = 0.5650
+fraction of tissue's errors RGB ALSO misses = 0.1672
+[THEORETICAL UPPER BOUND ONLY] pooled oracle selection accuracy = 0.8964
+
+======================================================================
+FOLD 1 RESIDUAL-FUSION: real vs. shuffled tissue statistics (test set)
+======================================================================
+n_test=362
+variant             accuracy  macro_f1     mae     qwk
+rgb_only              0.8370    0.8369  0.1630  0.9332
+real_fusion           0.8343    0.8350  0.1657  0.9310
+shuffled_fusion       0.8315    0.8321  0.1685  0.9300
+
+(real_fusion should match the already-recorded exp6_results.csv fold-1 row: accuracy=0.8343 macro_f1=0.8350 qwk=0.9310 -- sanity check, not a new result)
