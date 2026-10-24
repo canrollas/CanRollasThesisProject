@@ -43,6 +43,7 @@ sys.path.insert(0, str(TASK3_DIR))
 from src.dataset import CLASS_ORDER, StageDataset, list_samples  # noqa: E402
 from src.model import Backbone  # noqa: E402
 from src.splits import build_folds  # noqa: E402
+from src.utils import get_device  # noqa: E402
 
 NUM_FOLDS = 3
 SEED = 42
@@ -54,6 +55,10 @@ CHECKPOINT_DIR = TASK3_DIR / "results" / "task_3_outputs" / "checkpoints"
 TEACHERS = {
     "mit_b1": CHECKPOINT_DIR / "mit_b1__corn_fold{fold}.pt",
     "resnext50_32x4d": CHECKPOINT_DIR / "resnext50_32x4d__corn_fold{fold}.pt",
+    # fold2 here only strict-loads on its Backbone half (see the .provenance.json
+    # next to it) -- build_teacher() below only ever reads the "0."-prefixed
+    # backbone keys anyway, so that's exactly what this needs.
+    "convnextv2_tiny": CHECKPOINT_DIR / "convnextv2_tiny__corn_fold{fold}.pt",
 }
 
 FEATURES_DIR = EXP9_DIR / "features"
@@ -92,26 +97,33 @@ def write_index_csv(index_rows, path):
         writer.writerows(index_rows)
 
 
-def build_teacher(encoder_name, checkpoint_path):
+def build_teacher(encoder_name, checkpoint_path, device):
     backbone = Backbone(encoder_name, None)
     full_state = torch.load(checkpoint_path, map_location="cpu")
     backbone_state = {k[len("0."):]: v for k, v in full_state.items() if k.startswith("0.")}
     backbone.load_state_dict(backbone_state, strict=True)
+    backbone.to(device)
     backbone.eval()
     return backbone
 
 
 @torch.no_grad()
-def extract_embeddings(backbone, samples, data_root):
+def extract_embeddings(backbone, samples, data_root, device):
     ds = StageDataset(samples, data_root, IMAGE_SIZE, transform=None)
-    loader = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    # pin_memory is CUDA-only and MPS warns if asked for it -- skip it rather
+    # than fall back to CPU, which was ~10x slower on this machine.
+    loader = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2,
+                         pin_memory=(device.type == "cuda"))
     chunks = []
     for images, _ in loader:
-        chunks.append(backbone(images).numpy().astype(np.float16))
+        out = backbone(images.to(device))
+        chunks.append(out.cpu().numpy().astype(np.float16))
     return np.concatenate(chunks, axis=0)
 
 
 def main():
+    device = get_device()
+    print(f"device={device}", flush=True)
     data_root = REPO_ROOT / "datasets" / "wound-stage-classification"
     samples, index_rows = build_index(data_root)
     write_index_csv(index_rows, FEATURES_DIR / "index.csv")
@@ -119,14 +131,18 @@ def main():
 
     for teacher_name, ckpt_template in TEACHERS.items():
         for fold_idx in range(NUM_FOLDS):
+            out_path = FEATURES_DIR / f"{teacher_name}_fold{fold_idx}.npy"
+            if out_path.exists():
+                print(f"{teacher_name} fold{fold_idx}: already cached, skipping ({out_path})")
+                continue
+
             ckpt_path = Path(str(ckpt_template).format(fold=fold_idx))
             if not ckpt_path.exists():
                 print(f"SKIP {teacher_name} fold{fold_idx}: checkpoint missing ({ckpt_path})")
                 continue
 
-            backbone = build_teacher(teacher_name, ckpt_path)
-            embeddings = extract_embeddings(backbone, samples, data_root)
-            out_path = FEATURES_DIR / f"{teacher_name}_fold{fold_idx}.npy"
+            backbone = build_teacher(teacher_name, ckpt_path, device)
+            embeddings = extract_embeddings(backbone, samples, data_root, device)
             np.save(out_path, embeddings)
             print(f"{teacher_name} fold{fold_idx}: {embeddings.shape} {embeddings.dtype} -> {out_path}")
             del backbone
