@@ -23,6 +23,11 @@ more_experiments/**/*.pt
 more_experiments/piid_crops/crops/
 more_experiments/piid_crops/manifests/
 
+# exp-9: cached teacher embeddings (regenerable via scripts/extract_features.py,
+# same reasoning as the .pt rule above -- index.csv stays tracked, it's the
+# small manifest, not a generated artifact)
+more_experiments/exp/exp9_feature_distillation/features/*.npy
+
 # Python
 __pycache__/
 *.pyc
