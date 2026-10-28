@@ -55,6 +55,8 @@ def main():
     #    computation matches a reference CornHead EXACTLY.
     baseline = build_baseline_model("mit_b1", None, "corn", num_classes=4)
     tmp_ckpt = THIS_DIR.parent / "checkpoints" / "_test_throwaway_baseline.pt"
+    tmp_ckpt.parent.mkdir(parents=True, exist_ok=True)  # checkpoints/ is empty -> not tracked by git,
+                                                          # so a fresh clone (e.g. on Colab) doesn't have it yet
     torch.save(baseline.state_dict(), tmp_ckpt)
 
     for mode in ("heads", "attention", "contrastive"):
