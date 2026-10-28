@@ -591,3 +591,21 @@ re-run Steps 8–9 against those checkpoints.
 analysis results, and this write-up are the final, preserved record for
 Chapter 8 reporting. No Phase B or new fusion architecture is queued to
 start automatically.
+
+## 11. exp-10 — joint tissue × relative-geometry ordinal tokens
+
+[`exp/exp10_tissue_geometry_tokens/README.md`](exp/exp10_tissue_geometry_tokens/README.md)
+documents a new candidate architecture motivated by the inactive auxiliary
+branches in exp5/7 and the tissue-heterogeneity signal in exp6. It pools
+spatial RGB feature means and variances into soft tissue × relative-depth
+tokens, then uses three ordinal queries with direct auxiliary supervision
+and joint last-stage fine-tuning. Matched RGB, tissue, wound-geometry and
+full controls are implemented. Raw Depth Anything V2 Small maps were
+generated and verified for all 1,091 images.
+
+**Status: implementation and small pipeline checks complete; no full
+three-fold training/test result yet. No improvement over the 0.8168 RGB
+baseline is claimed.** RGB-derived pseudo-depth is a pretrained geometric
+prior, not measured physical wound depth. The experiment includes separate
+validation/test evaluation, input/split/checkpoint identity checks and
+content-shuffle ablations; the historical exp1–7 records remain unchanged.

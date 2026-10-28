@@ -1,0 +1,37 @@
+{
+  "split_seed": 42,
+  "num_folds": 3,
+  "val_fraction": 0.1,
+  "image_size": 224,
+  "n_images": 1091,
+  "source": "task_3/src/splits.py; membership independently cross-checked against exp9/features/index.csv",
+  "folds": {
+    "0": {
+      "split_sha256": "102b9e155814eca5d16a662908b444c27857cddc09dc6277c63dd27661650e23",
+      "baseline_sha256": "4f17f524a73abf5f824a2171608bdcdbca0e81613eca2303a1f6f936f2d37320",
+      "counts": {
+        "train": 656,
+        "val": 73,
+        "test": 362
+      }
+    },
+    "1": {
+      "split_sha256": "c5cf3cf7b25f8c50154526399e6453d8d7f5950e72d6344c47918c217f5dd659",
+      "baseline_sha256": "5f56d0fab245f8774cecb48ecfd68c03546810a433b846f05c7266aab7c03f50",
+      "counts": {
+        "train": 656,
+        "val": 73,
+        "test": 362
+      }
+    },
+    "2": {
+      "split_sha256": "c62c099c8fd82bd6836d23c60cda9d2dcbda9f5957619415e5819f94da212b83",
+      "baseline_sha256": "2f0b23e34097a5a1efae832cda481e06e1abc42361d909408c4ec9f327292fb0",
+      "counts": {
+        "train": 652,
+        "val": 72,
+        "test": 367
+      }
+    }
+  }
+}
