@@ -1,0 +1,72 @@
+{
+  "fold": 0,
+  "level": "stage3",
+  "n_test": 362,
+  "corn_acc": 0.8121546961325967,
+  "probe_acc": 0.7624309392265194,
+  "both_correct": 262,
+  "probe_rescues": 14,
+  "probe_breaks": 32,
+  "both_wrong": 54,
+  "n_corn_errors": 68,
+  "rescue_rate": 0.20588235294117646,
+  "common_error_rate": 0.7941176470588235,
+  "pair_breakdown": [
+    {
+      "true": "stage_3",
+      "corn_pred": "stage_4",
+      "n_corn_errors": 28,
+      "n_probe_rescued": 6,
+      "rescue_rate": 0.2143
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_3",
+      "n_corn_errors": 11,
+      "n_probe_rescued": 3,
+      "rescue_rate": 0.2727
+    },
+    {
+      "true": "stage_1",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 9,
+      "n_probe_rescued": 1,
+      "rescue_rate": 0.1111
+    },
+    {
+      "true": "stage_4",
+      "corn_pred": "stage_3",
+      "n_corn_errors": 9,
+      "n_probe_rescued": 3,
+      "rescue_rate": 0.3333
+    },
+    {
+      "true": "stage_3",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 5,
+      "n_probe_rescued": 1,
+      "rescue_rate": 0.2
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_1",
+      "n_corn_errors": 4,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_4",
+      "n_corn_errors": 1,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_4",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 1,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    }
+  ]
+}

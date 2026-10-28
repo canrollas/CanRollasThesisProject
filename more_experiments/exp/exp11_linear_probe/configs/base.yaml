@@ -1,0 +1,23 @@
+# Experiment 11 -- linear-probe diagnostic for CORN's errors (Chapter 8).
+# No new architecture, no retraining of the encoder: does task_3's own
+# trained MiT-B1+CORN encoder already carry information that COULD
+# separate the wounds CORN itself gets wrong, if read out with a
+# different (linear) decision rule? See README.md for the full design.
+
+encoder: mit_b1
+image_size: 224
+batch_size: 16
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths resolve relative to the repo root (not this file's directory --
+# scripts/extract_features.py anchors on REPO_ROOT directly, matching
+# task_3's own dataset layout exactly).
+data_root: datasets/wound-stage-classification
+rgb_checkpoint_template: task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold{fold}.pt
+
+results_dir: results

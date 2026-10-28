@@ -28,6 +28,13 @@ more_experiments/piid_crops/manifests/
 # small manifest, not a generated artifact)
 more_experiments/exp/exp9_feature_distillation/features/*.npy
 
+# exp-11: cached encoder features/predictions (regenerable via
+# scripts/extract_features.py + train_probe.py against the frozen task_3
+# checkpoint -- same reasoning as exp-9's rule above). The *_summary.json
+# and *_per_image.csv files are the actual small, readable results and
+# stay tracked.
+more_experiments/exp/exp11_linear_probe/results/fold_*/*.npy
+
 # exp-9 distillation run was killed after fold0 (doesn't beat baseline, not
 # pursued further -- see commit 5d4a7f6) -- its one-fold CSV would misread
 # as a completed 3-fold result if left tracked, so unlike other exp*/results/

@@ -627,3 +627,41 @@ masked self-similarity position was multiplied directly against the
 positive mask; fixed with `torch.where` before any real training was
 attempted (`scripts/test_model.py`'s near-zero/finite-loss checks catch a
 regression here directly).
+
+## 12. exp-11 — linear-probe diagnostic for CORN's errors
+
+[`exp/exp11_linear_probe/README.md`](exp/exp11_linear_probe/README.md)
+asks a narrower, cheaper question than exp-1–10's new architectures: does
+task_3's own trained MiT-B1+CORN encoder already carry information that
+could separate the wounds CORN itself gets wrong, read out with a
+different (linear) decision rule — without retraining or touching the
+encoder at all? The encoder and the real CornHead are both frozen;
+`scripts/extract_features.py` saves the exact 512-dim GAP vector CornHead
+reads for every train/val/test image, plus CORN's own prediction from
+that same forward pass (so it can never drift from a separately-stored
+summary), plus an earlier, 320-dim stage-3 feature as a control level —
+task_3's `CornHead` turned out to be a single `Linear` layer with no
+hidden layer, so the proposal's planned "pre-logit CORN feature" level
+doesn't exist as a distinct thing to probe; stage-3 substitutes for it.
+`scripts/train_probe.py` fits an `sklearn.linear_model.LogisticRegression`
+probe (features standardized on train only, regularization strength
+chosen by validation macro-F1, test touched exactly once after that
+choice is fixed). `scripts/compare_errors.py` builds the four-way
+breakdown (both right / probe rescues / probe breaks / both wrong) and a
+per-(true, CORN-predicted) pair rescue-rate table.
+
+**Status (2026-10-28): fold 0 run end to end; folds 1/2 not yet run — no
+conclusion about the encoder's sufficiency is drawn from one fold.**
+Sanity check passed exactly: the recomputed CORN test accuracy (0.8122)
+matches `task_3/results/task_3_outputs/results/ablation_results.csv`'s
+fold-0 row to 4 decimal places. At the `final` (CornHead's own) level:
+probe accuracy 0.8039 vs. CORN's 0.8122; of CORN's 68 test errors, the
+probe rescues 6 (8.8%) and breaks 9 previously-correct predictions — 91.2%
+of CORN's errors are errors for the probe too. The single largest error
+cell, true=stage_3/CORN-predicted=stage_4 (28 of the 68 errors), has a
+somewhat higher 14.3% rescue rate (4/28). At the earlier `stage3` control
+level, overall probe accuracy is lower (0.7624) but the rescue rate among
+CORN's errors is higher (20.6%, 14/68) at the cost of far more breaks (32
+vs. 9) — overall accuracy and "ability to fix CORN's specific errors" are
+not the same axis. No CPU/GPU training beyond a single `sklearn` fit is
+needed anywhere in this experiment.

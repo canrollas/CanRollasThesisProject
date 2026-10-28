@@ -1,0 +1,72 @@
+{
+  "fold": 0,
+  "level": "final",
+  "n_test": 362,
+  "corn_acc": 0.8121546961325967,
+  "probe_acc": 0.8038674033149171,
+  "both_correct": 285,
+  "probe_rescues": 6,
+  "probe_breaks": 9,
+  "both_wrong": 62,
+  "n_corn_errors": 68,
+  "rescue_rate": 0.08823529411764706,
+  "common_error_rate": 0.9117647058823529,
+  "pair_breakdown": [
+    {
+      "true": "stage_3",
+      "corn_pred": "stage_4",
+      "n_corn_errors": 28,
+      "n_probe_rescued": 4,
+      "rescue_rate": 0.1429
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_3",
+      "n_corn_errors": 11,
+      "n_probe_rescued": 1,
+      "rescue_rate": 0.0909
+    },
+    {
+      "true": "stage_1",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 9,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_4",
+      "corn_pred": "stage_3",
+      "n_corn_errors": 9,
+      "n_probe_rescued": 1,
+      "rescue_rate": 0.1111
+    },
+    {
+      "true": "stage_3",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 5,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_1",
+      "n_corn_errors": 4,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_2",
+      "corn_pred": "stage_4",
+      "n_corn_errors": 1,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    },
+    {
+      "true": "stage_4",
+      "corn_pred": "stage_2",
+      "n_corn_errors": 1,
+      "n_probe_rescued": 0,
+      "rescue_rate": 0.0
+    }
+  ]
+}
