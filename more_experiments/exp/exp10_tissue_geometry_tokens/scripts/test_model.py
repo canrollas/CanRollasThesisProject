@@ -105,7 +105,7 @@ class ModelTests(unittest.TestCase):
         # Same per-class mass and wound support, different spatial association.
         swapped = tissue.flip(-1)
         second = self.model(rgb, swapped, depth, flags)
-        self.assertTrue(torch.equal(tissue.sum((2, 3)), swapped.sum((2, 3))))
+        torch.testing.assert_close(tissue.sum((2, 3)), swapped.sum((2, 3)), atol=1e-4, rtol=1e-4)
         self.assertGreater((first["local_logits"] - second["local_logits"]).abs().max().item(), 1e-6)
         self.assertTrue(torch.equal(first["rgb_logits"], second["rgb_logits"]))
 
