@@ -156,8 +156,6 @@ Tam tablo: `more_experiments/reports/master_experiment_comparison.csv`.
 | exp-6 stats rezidüel | 20-dim+RGB | 3 | 0.8159±0.0138 | 0.8175±0.0129 | 0.9131±0.0156 | −0.09 |
 | exp-7 global-local ROI | RGB+ROI | 3 | 0.8120±0.0098 | 0.8142±0.0095 | 0.9131±0.0090 | −0.48 |
 
-**I. Depth-destekli evreleme:** Depth Anything V2 (small) ile üretilmiş bir derinlik veri kümesi lokal olarak hazırlanmıştı (`datasets/wound-stage-depth-anything-v2-small/`), fakat **hiçbir eğitim scripti, model implementasyonu veya sonuç dosyası yazılmadı** — repo commit geçmişinde bu isimde tek bir commit bile yok. Veri kümesi daha sonra silindi. **Bu deney ailesi değerlendirilmemiştir; varsayımsal bir performans değeri raporlanmamaktadır.**
-
 ## 9. Bilimsel Yorumlama
 
 **Soru 1 — Yara lokalizasyonu evreleme doğruluğunu artırıyor mu?** Hayır, test edilen hiçbir biçimde: ne maskeleme (exp-1/2, −3.3pp), ne de özellik-düzeyinde ROI füzyonu (exp-7, −0.5pp, 0 tahmin değişimi). Doğrudan gözlem.

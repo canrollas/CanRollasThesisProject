@@ -42,3 +42,7 @@ venv/
 
 # OS
 .DS_Store
+
+# Local explanation panels contain original clinical photographs.
+more_experiments/reports/figures/mit_b1_corn_test_explanations/
+more_experiments/reports/figures/mit_b1_corn_test_cases/

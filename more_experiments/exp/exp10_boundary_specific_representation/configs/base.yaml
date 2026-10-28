@@ -1,0 +1,58 @@
+# Experiment 10 -- boundary-specific representation learning for CORN
+# (Chapter 8). task_3's MiT-B1+CORN model pools the encoder's final
+# feature map into ONE 512-dim vector (src/model.py's Backbone.forward:
+# feat_map.mean(dim=(2,3))) before CornHead's single Linear(512,3) layer
+# decides all three ordinal boundaries from it -- only the three linear
+# weight ROWS differ per boundary, the representation they read never
+# does. This experiment gives each boundary its own learned spatial
+# attention over that feature map, added as a residual on top of the
+# FROZEN, already-trained RGB baseline (same per-fold checkpoint
+# exp5/6/7 load) -- see scripts/model.py's module docstring for the full
+# mechanism and README.md for the ablation design (modes: heads /
+# attention / contrastive).
+#
+# config_id: mit_b1__corn__boundary_{mode}, mode in {heads, attention, contrastive}
+
+encoder: mit_b1
+weights: imagenet   # only used to build the backbone's architecture; its
+                     # actual weights are overwritten by the loaded baseline checkpoint
+head: corn
+
+image_size: 224
+batch_size: 16
+hidden_dim: 128
+
+lr: 0.0001
+weight_decay: 0.00001
+max_epochs: 100
+eta_min_factor: 0.01
+patience: 10         # early stopping: epochs without val macro_f1 improvement
+
+# lambda in L = L_CORN + lambda * sum_k L_contrast^(k) -- "contrastive" mode only
+contrastive_weight: 0.3
+contrastive_temperature: 0.1
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp10_boundary_specific_representation/
+# (this file's grandparent) -- the ORIGINAL, unmodified PIID staging
+# photos, same dataset task_3 trained the baseline on. No new data,
+# masks, or derived modality is used anywhere in this experiment.
+data_root: ../../../datasets/wound-stage-classification
+
+# Per-fold RGB baseline checkpoints -- task_3's own mit_b1__corn config,
+# trained unmodified (not retrained here). {fold} substituted with 0/1/2.
+rgb_checkpoint_template: ../../../task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold{fold}.pt
+
+checkpoint_dir: checkpoints
+results_csv: results/exp10_results.csv

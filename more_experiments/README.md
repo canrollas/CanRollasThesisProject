@@ -592,20 +592,38 @@ analysis results, and this write-up are the final, preserved record for
 Chapter 8 reporting. No Phase B or new fusion architecture is queued to
 start automatically.
 
-## 11. exp-10 — joint tissue × relative-geometry ordinal tokens
+## 11. exp-10 — boundary-specific representation learning for CORN
 
-[`exp/exp10_tissue_geometry_tokens/README.md`](exp/exp10_tissue_geometry_tokens/README.md)
-documents a new candidate architecture motivated by the inactive auxiliary
-branches in exp5/7 and the tissue-heterogeneity signal in exp6. It pools
-spatial RGB feature means and variances into soft tissue × relative-depth
-tokens, then uses three ordinal queries with direct auxiliary supervision
-and joint last-stage fine-tuning. Matched RGB, tissue, wound-geometry and
-full controls are implemented. Raw Depth Anything V2 Small maps were
-generated and verified for all 1,091 images.
+[`exp/exp10_boundary_specific_representation/README.md`](exp/exp10_boundary_specific_representation/README.md)
+targets a different gap than exp3–exp9: all of those added an external
+modality (tissue or ROI). exp-10 adds nothing new to the input —
+task_3's own MiT-B1+CORN pools the encoder's final feature map into one
+512-dim vector *before* CornHead's single `Linear(512,3)` decides all
+three ordinal boundaries from it, so the three decisions only ever differ
+in their linear weight row, never in what representation they read.
+exp-10 gives each boundary its own learned spatial attention over the
+(un-pooled) feature map, added as a residual on top of the frozen,
+already-trained RGB baseline (same per-fold checkpoint exp5/6/7 load) —
+Phase A convention, backbone and the baseline's own CornHead frozen
+throughout. Three modes share one architecture: `heads` (boundary-specific
+nonlinear decision head, no attention), `attention` (adds the learned
+per-boundary spatial gate), `contrastive` (adds a per-boundary supervised
+contrastive term pulling same-side images together, pushing opposite-side
+images apart in that boundary's own representation space).
 
-**Status: implementation and small pipeline checks complete; no full
-three-fold training/test result yet. No improvement over the 0.8168 RGB
-baseline is claimed.** RGB-derived pseudo-depth is a pretrained geometric
-prior, not measured physical wound depth. The experiment includes separate
-validation/test evaluation, input/split/checkpoint identity checks and
-content-shuffle ablations; the historical exp1–7 records remain unchanged.
+`scripts/diagnose_attention.py` is built specifically to check the
+architecture's own stated risk: that the three attention modules converge
+to near-identical spatial focus, making the design a no-op reparameterization
+regardless of what accuracy says — it reports pairwise cosine similarity,
+correlation, and argmax agreement between the three boundaries' learned
+attention maps on real test images.
+
+**Status (2026-10-28): architecture and training code written, architecture
+tests and a real-checkpoint/real-data smoke test pass for all three modes.
+No mode has been trained for three full folds yet — no accuracy number here
+is a result.** A caught-and-fixed bug is worth recording: the first
+`BoundarySupConLoss` implementation produced `-inf * 0 = nan` whenever a
+masked self-similarity position was multiplied directly against the
+positive mask; fixed with `torch.where` before any real training was
+attempted (`scripts/test_model.py`'s near-zero/finite-loss checks catch a
+regression here directly).
