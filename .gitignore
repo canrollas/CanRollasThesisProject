@@ -35,6 +35,15 @@ more_experiments/exp/exp9_feature_distillation/features/*.npy
 # stay tracked.
 more_experiments/exp/exp11_linear_probe/results/fold_*/*.npy
 
+# exp-11: fold_1/fold_2 three-fold rollup + per-fold result files -- kept
+# locally but not tracked (only fold_0's original committed numbers stay
+# in git history; the 3-fold aggregation is exploratory and not meant to
+# be a tracked source of truth yet).
+more_experiments/exp/exp11_linear_probe/results/aggregate_summary.csv
+more_experiments/exp/exp11_linear_probe/results/aggregate_summary.json
+more_experiments/exp/exp11_linear_probe/results/fold_1/
+more_experiments/exp/exp11_linear_probe/results/fold_2/
+
 # exp-9 distillation run was killed after fold0 (doesn't beat baseline, not
 # pursued further -- see commit 5d4a7f6) -- its one-fold CSV would misread
 # as a completed 3-fold result if left tracked, so unlike other exp*/results/

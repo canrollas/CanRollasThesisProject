@@ -618,15 +618,40 @@ regardless of what accuracy says — it reports pairwise cosine similarity,
 correlation, and argmax agreement between the three boundaries' learned
 attention maps on real test images.
 
-**Status (2026-10-28): architecture and training code written, architecture
-tests and a real-checkpoint/real-data smoke test pass for all three modes.
-No mode has been trained for three full folds yet — no accuracy number here
-is a result.** A caught-and-fixed bug is worth recording: the first
+**Status (2026-10-28): all three modes completed three-fold Colab training
+and test evaluation. 81.68 was not exceeded.** Mean test accuracy:
+`contrastive` **0.8167 ± 0.0144**, `heads` 0.8139 ± 0.0132, `attention`
+0.8130 ± 0.0102, vs. the task_3 baseline's 0.8168 ± 0.0150 (macro-F1
+0.8182 ± 0.0138, QWK 0.9138 ± 0.0164). `contrastive` is statistically
+indistinguishable from the baseline (both accuracy and QWK match to
+within 0.001); `heads`/`attention` sit inside the baseline's own 1-std
+band but consistently a bit below it. Unlike exp1/exp2/exp3, no mode
+regressed meaningfully below baseline — the mildest negative result in
+this chapter so far.
+
+`scripts/diagnose_attention.py`'s pairwise check on real test images
+found exactly the risk the architecture names: in `attention` mode the
+three boundaries' learned attention maps are nearly identical (mean
+cosine similarity 0.9964 across all 3 pairs × 3 folds, mean argmax
+agreement 0.1155) — the per-boundary spatial-selection premise does not
+hold as trained. The `contrastive` term measurably corrects this (mean
+cosine drops to 0.9170, argmax agreement rises to 0.2334, one fold pair
+as low as 0.7453) — the loss does what it's designed to do — but that
+increased representational separation does not convert into an accuracy
+gain over plain `attention`, the same pattern exp-6 found with its
+hand-crafted-vs-CNN tissue features (25x more content-sensitive, no
+accuracy gain). Full breakdown:
+[`results/colab_2026-10-28/analysis.md`](exp/exp10_boundary_specific_representation/results/colab_2026-10-28/analysis.md).
+
+A caught-and-fixed bug from implementation is worth recording: the first
 `BoundarySupConLoss` implementation produced `-inf * 0 = nan` whenever a
 masked self-similarity position was multiplied directly against the
 positive mask; fixed with `torch.where` before any real training was
 attempted (`scripts/test_model.py`'s near-zero/finite-loss checks catch a
-regression here directly).
+regression here directly). Separately, `test_model.py` initially failed
+on a fresh clone (Colab) because `checkpoints/` is an empty,
+git-untracked directory — fixed by creating it before the throwaway
+checkpoint save.
 
 ## 12. exp-11 — linear-probe diagnostic for CORN's errors
 
@@ -650,18 +675,29 @@ choice is fixed). `scripts/compare_errors.py` builds the four-way
 breakdown (both right / probe rescues / probe breaks / both wrong) and a
 per-(true, CORN-predicted) pair rescue-rate table.
 
-**Status (2026-10-28): fold 0 run end to end; folds 1/2 not yet run — no
-conclusion about the encoder's sufficiency is drawn from one fold.**
-Sanity check passed exactly: the recomputed CORN test accuracy (0.8122)
-matches `task_3/results/task_3_outputs/results/ablation_results.csv`'s
-fold-0 row to 4 decimal places. At the `final` (CornHead's own) level:
-probe accuracy 0.8039 vs. CORN's 0.8122; of CORN's 68 test errors, the
-probe rescues 6 (8.8%) and breaks 9 previously-correct predictions — 91.2%
-of CORN's errors are errors for the probe too. The single largest error
-cell, true=stage_3/CORN-predicted=stage_4 (28 of the 68 errors), has a
-somewhat higher 14.3% rescue rate (4/28). At the earlier `stage3` control
-level, overall probe accuracy is lower (0.7624) but the rescue rate among
-CORN's errors is higher (20.6%, 14/68) at the cost of far more breaks (32
-vs. 9) — overall accuracy and "ability to fix CORN's specific errors" are
-not the same axis. No CPU/GPU training beyond a single `sklearn` fit is
-needed anywhere in this experiment.
+**Status (2026-10-28): all 3 folds run end to end, including 3-fold
+aggregation (`scripts/aggregate_results.py`).** Sanity check passed
+exactly in every fold: the recomputed CORN test accuracy matches
+`task_3/results/task_3_outputs/results/ablation_results.csv` to 4
+decimal places (0.8122/0.8370/0.8011), so CORN's own mean±std here
+(0.8168±0.0150 acc, 0.8182±0.0138 F1, 0.9138±0.0164 QWK) is identical to
+task_3's published baseline, not a separate recomputation. Mean test
+accuracy/macro-F1/QWK: `final`-level probe (CornHead's own 512-dim input)
+0.8103±0.0111 / 0.8122±0.0113 / 0.9125±0.0101 — close to CORN, slightly
+below in every fold; `stage3`-level probe (320-dim, earlier/control)
+0.7709±0.0198 / 0.7725±0.0199 / 0.8920±0.0078 — meaningfully worse in
+every fold. Summed error breakdown over all 3 folds' 200 total CORN
+errors: `final` rescues 29 (14.5% pooled) and creates 36 new errors;
+`stage3` rescues 50 (25.0% pooled) at the cost of 100 new errors — the
+same direction in all 3 folds individually, not a single-fold artifact.
+In the named true=stage_3/CORN-predicted=stage_4 cell (65 such errors
+across all 3 folds): `final` rescues 10 (15.4%), `stage3` rescues 19
+(29.2%) — but per-fold this cell is noisy (fold 2's `final` rescue rate
+is exactly 0/16), so no fold-robust claim about this specific boundary is
+made. Overall: linear-probe-separable information the encoder carries but
+CORN doesn't use exists and is consistently nonzero across folds, but is
+limited — this says the encoder is close to sufficient for CORN's own
+decision rule, not that it is insufficient; no architecture change is
+implied or recommended by this result alone. No CPU/GPU training beyond
+frozen forward passes and a single `sklearn` fit is needed anywhere in
+this experiment.

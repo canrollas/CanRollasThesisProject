@@ -1,9 +1,15 @@
 # Exp10 — Boundary-Specific Representation Learning for CORN
 
-**Durum (28 Ekim 2026):** Mimari ve eğitim kodu yazıldı, mimari testleri
-(`scripts/test_model.py`) ve üç modun gerçek checkpoint/gerçek veri ile
-duman testi (`--smoke`) geçti. **Hiçbir mod henüz tam üç-fold eğitilmedi;
-aşağıdaki hiçbir sayı bir sonuç değildir.**
+**Durum (28 Ekim 2026):** Üç mod da Colab'da gerçek üç-fold eğitim/test
+tamamladı. **81.68 geçilmedi.** `contrastive`, baseline'ı istatistiksel
+olarak ayırt edilemez biçimde tutturdu (0.8167 vs 0.8168 acc); `heads` ve
+`attention` baseline'ın 1 std'si içinde ama hafif altında kaldı. Attention
+tanısı (`scripts/diagnose_attention.py`) mimarinin kendi öne sürdüğü riski
+doğrudan doğruladı: `attention` modunda üç sınırın attention haritaları
+neredeyse birbirinin aynısı (ortalama kosinüs ≈0.996); `contrastive`
+kaybı bunu ölçülebilir şekilde ayrıştırdı (ortalama kosinüs ≈0.917,
+argmax-uyumu ~%12'den ~%23'e çıktı) ama bu ayrışma doğruluğa yansımadı.
+Ayrıntılar aşağıdaki "Sonuçlar" bölümünde.
 
 ## Problem
 
@@ -122,6 +128,59 @@ staging fotoğrafları (`datasets/wound-stage-classification/`), aynı
 3-fold bölünme algoritması (`task_3/src/splits.py`'nin `build_folds`'u,
 aynı seed=42) -- task_3'ün kendi baseline'ıyla doğrudan, eşleştirilmiş
 karşılaştırma, yeni sızıntı yüzeyi yok.
+
+## Sonuçlar (Colab, üç mod, üç fold, gerçek eğitim)
+
+`results/results.csv`, `early_stopped_at_epoch` 11-13 arasında (patience=10),
+`backbone_and_baseline_head_unchanged_across_training: true` her fold/modda
+(provenance JSON'larında doğrulandı).
+
+| Mod | Accuracy | Macro-F1 | QWK |
+|---|---|---|---|
+| **baseline** (task_3, referans, yeniden koşulmadı) | 0.8168 ± 0.0150 | 0.8182 ± 0.0138 | 0.9138 ± 0.0164 |
+| `heads` | 0.8139 ± 0.0132 | 0.8167 ± 0.0122 | 0.9110 ± 0.0115 |
+| `attention` | 0.8130 ± 0.0102 | 0.8155 ± 0.0103 | 0.9120 ± 0.0105 |
+| `contrastive` | **0.8167 ± 0.0144** | **0.8188 ± 0.0136** | **0.9138 ± 0.0142** |
+
+(ortalama ± std, 3 fold üzerinde; std popülasyon std'si, `task_3/src/utils.py`'nin
+`write_summary`'siyle aynı kural)
+
+**`contrastive`, baseline'dan istatistiksel olarak ayırt edilemez** (fark
+<0.001 acc, <0.0001 qwk -- kendi std'sinin çok altında). `heads` ve
+`attention` baseline'ın 1 std'si içinde ama sistematik olarak hafif altında.
+**Hiçbir mod 81.68'i geçmedi**, ama -- exp1/exp2/exp3'ün aksine -- hiçbiri
+baseline'ın anlamlı altına da düşmedi; bu bölümdeki en "zararsız" sonuç.
+
+### Attention tanısı -- mimarinin kendi öne sürdüğü riski doğrudan test eder
+
+`scripts/diagnose_attention.py`, test setinde üç sınırın (`A_0`, `A_1`,
+`A_2`) öğrenilen attention haritalarını ikili kosinüs benzerliği, Pearson
+korelasyonu ve argmax-uyum oranıyla karşılaştırır (`results/attention_diagnostics_*.json`,
+notebook çıktısından kurtarıldı):
+
+| Mod | Ortalama kosinüs (3 çift × 3 fold) | Ortalama argmax-uyumu |
+|---|---|---|
+| `attention` | **0.9964** | 0.1155 |
+| `contrastive` | **0.9170** | 0.2334 |
+
+**`attention` modunda mimarinin kendi öne sürdüğü risk gerçekleşti**: üç
+bağımsız attention konvolüsyonu, hiçbir zorlama olmadan birbirinin neredeyse
+aynısını öğrendi (kosinüs ~0.99, her üç çiftte ve her fold'da). Mekânsal
+seçimin sınıra özel olduğu iddiası bu haliyle desteklenmiyor.
+
+**`contrastive` kaybı bunu kısmen düzeltti**: ortalama kosinüs 0.996'dan
+0.917'ye düştü, argmax-uyumu ~%12'den ~%23'e çıktı (fold2'de `boundary0_vs_boundary1`
+çifti 0.7453'e kadar düştü -- gerçek bir ayrışma, sadece gürültü değil).
+Kayıp, tasarlandığı şeyi yapıyor: sınır temsillerini ölçülebilir şekilde
+birbirinden ayrıştırıyor.
+
+**Ama bu ayrışma doğruluğa dönüşmedi** -- `contrastive`'in test skoru
+`attention`'dan anlamlı şekilde iyi değil (0.8167 vs 0.8130, 1 std içinde).
+exp6'nın bulgusuyla aynı örüntü: hand-crafted doku istatistikleri CNN'e göre
+25x daha içerik-duyarlı kalıntı (`delta_z`) üretti ama agregat doğruluğu
+hareket ettirmedi. Burada da temsil ayrışması (mimarinin iddia ettiği
+mekanizma) gerçekleşti, ama bu ayrışma CORN'un karar sınırını hiçbir fold'da
+yeterince değiştirmedi.
 
 ## Çalıştırma
 

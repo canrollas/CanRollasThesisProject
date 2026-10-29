@@ -1,0 +1,32 @@
+# Experiment 12 -- Task-2-pretrained-encoder transfer for CORN wound
+# staging. Task 2's own MAnet+MiT-B2 encoder (segmentation-benchmarking
+# grid, paper_miou=0.7263, see task_2/configs/base.yaml) already learned to
+# separate granulation / slough / necrosis / tendon / bone at the pixel
+# level, on a dataset with zero PIID overlap with the staging dataset (see
+# README's "Leakage" section and
+# more_experiments/manifests/piid_overlap_report.json's
+# "task2_piid_overlap_check"). This experiment discards Task 2's decoder,
+# keeps only the fine-tuned encoder, attaches a fresh CORN head, and fully
+# fine-tunes on the PIID staging dataset.
+#
+# The actual training recipe (lr/epochs/batch/image_size/augment/folds/
+# seed) is NOT duplicated here -- scripts/train.py reads it directly from
+# task_3/configs/base.yaml at run time, so this stays byte-identical to the
+# recipe that produced the mit_b1__corn and mit_b2__corn (ImageNet) rows
+# already in task_3/results/task_3_outputs/results/ablation_results.csv.
+# Only this experiment's OWN settings (which encoder, where its weights
+# come from, where to write outputs) live below.
+
+encoder: mit_b2
+head: corn
+
+# {task2_fold} substituted with 1/2/3 at run time -- task_3 fold f (0/1/2)
+# uses task2_fold=f+1. Arbitrary-but-fixed pairing: the two datasets share
+# no case/PIID (see README), so there is no "correct" correspondence
+# between a task_3 fold and a task_2 fold. Each of Task 2's 3
+# independently-trained fold encoders is used exactly once -- never the
+# same one reused for all 3 task_3 folds.
+task2_checkpoint_template: task_2/results/task_2_outputs/checkpoints/wound_inner_fold{task2_fold}/MAnet_mit_b2_imagenet.pth
+
+checkpoint_dir: checkpoints
+results_csv: results/exp12_results.csv

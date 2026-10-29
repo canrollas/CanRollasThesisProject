@@ -1,0 +1,29 @@
+{
+  "mode": "attention",
+  "fold": 1,
+  "split": "test",
+  "n_images": 362,
+  "pairwise": {
+    "boundary0_vs_boundary1": {
+      "mean_cosine": 0.9978,
+      "std_cosine": 0.0023,
+      "mean_correlation": 0.1558,
+      "argmax_agreement_rate": 0.1354,
+      "n_images": 362
+    },
+    "boundary0_vs_boundary2": {
+      "mean_cosine": 0.9951,
+      "std_cosine": 0.0034,
+      "mean_correlation": 0.2279,
+      "argmax_agreement_rate": 0.163,
+      "n_images": 362
+    },
+    "boundary1_vs_boundary2": {
+      "mean_cosine": 0.9986,
+      "std_cosine": 0.0012,
+      "mean_correlation": 0.8452,
+      "argmax_agreement_rate": 0.4199,
+      "n_images": 362
+    }
+  }
+}

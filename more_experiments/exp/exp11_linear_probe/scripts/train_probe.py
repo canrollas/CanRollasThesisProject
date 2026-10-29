@@ -85,6 +85,10 @@ def main():
     train_pred = best_clf.predict(x_train_s)
     val_pred = best_clf.predict(x_val_s)
     test_pred = best_clf.predict(x_test_s)  # touched exactly once, after C is already fixed on val
+    # Class probabilities too -- not used for anything in THIS script, but
+    # needed downstream (oracle_analysis.py's disagreement-confidence
+    # check) without having to refit the probe there.
+    test_proba = best_clf.predict_proba(x_test_s)
 
     train_stats = compute_metrics(y_train, train_pred, num_classes)
     val_stats = compute_metrics(y_val, val_pred, num_classes)
@@ -97,6 +101,8 @@ def main():
     np.save(fold_dir / f"probe_{args.level}_train_preds.npy", train_pred)
     np.save(fold_dir / f"probe_{args.level}_val_preds.npy", val_pred)
     np.save(fold_dir / f"probe_{args.level}_test_preds.npy", test_pred)
+    np.save(fold_dir / f"probe_{args.level}_test_proba.npy", test_proba)
+    np.save(fold_dir / f"probe_{args.level}_classes.npy", best_clf.classes_)  # column order for test_proba
 
     summary = {
         "fold": args.fold, "level": args.level, "feature_dim": int(x_train.shape[1]),
