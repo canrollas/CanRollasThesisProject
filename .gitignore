@@ -23,6 +23,11 @@ more_experiments/**/*.pt
 more_experiments/piid_crops/crops/
 more_experiments/piid_crops/manifests/
 
+# exp-10: stray local results.csv (not configs/base.yaml's own
+# results/exp10_results.csv -- a leftover/duplicate local run artifact).
+# Numbers already live in README.md and results/colab_2026-10-28/analysis.md.
+more_experiments/exp/exp10_boundary_specific_representation/results/results.csv
+
 # exp-9: cached teacher embeddings (regenerable via scripts/extract_features.py,
 # same reasoning as the .pt rule above -- index.csv stays tracked, it's the
 # small manifest, not a generated artifact)

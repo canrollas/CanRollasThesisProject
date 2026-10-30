@@ -1,0 +1,41 @@
+# Experiment 13 -- DINOv2 ViT-L/14 as a wound-staging encoder. A
+# completely different kind of pretraining than exp12 (self-supervised,
+# general-purpose, LVD-142M -- no wound/medical images at all, no
+# task_2/task_3 relation) instead of task-adjacent transfer. 303M params
+# vs. MiT-B1's 13M / MiT-B2's 24M -- a different hypothesis ("does a much
+# larger, very strong general-purpose visual backbone help even with zero
+# domain pretraining") from exp12's ("does a smaller, domain-pretrained
+# one help").
+#
+# Dataset split, image_size, and augmentation are NOT duplicated here --
+# scripts/train.py reads them directly from task_3/configs/base.yaml, same
+# convention as exp12, for byte-identical comparability with the
+# mit_b1__corn / mit_b2__corn (ImageNet) reference rows.
+
+encoder: dinov2_vitl14
+head: corn
+
+# Two modes -- see README's "Fine-tune güvenliği" for why they need very
+# different optimizer settings. frozen (linear probe): only CornHead
+# trains, can afford a normal-sized lr/batch, same 100 epochs as task_3's
+# own recipe. finetune: all 303M params train -- a much smaller lr, a
+# much smaller batch (GPU memory), and far fewer epochs (no early
+# stopping implemented here -- reuses task_3's fixed-epoch fit()
+# unchanged, same as exp12 -- so the epoch count itself is the main
+# overfitting guard for this mode).
+modes:
+  frozen:
+    lr: 0.001
+    weight_decay: 0.00001
+    epochs: 100
+    batch_size: 16
+  finetune:
+    lr: 0.00001
+    weight_decay: 0.00001
+    epochs: 30
+    batch_size: 4
+
+eta_min_factor: 0.01
+
+checkpoint_dir: checkpoints
+results_csv: results/exp13_results.csv
