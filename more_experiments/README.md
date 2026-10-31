@@ -701,3 +701,27 @@ decision rule, not that it is insufficient; no architecture change is
 implied or recommended by this result alone. No CPU/GPU training beyond
 frozen forward passes and a single `sklearn` fit is needed anywhere in
 this experiment.
+
+## 13. exp-14 — RGB + monocular relative-depth channel (in progress)
+
+`exp/exp14_depth_channel/` — the full depth-fusion rerun WP5
+(`experiment_extended/wp5_depth_stage34/`) explicitly said it was *not*
+doing: WP5 only fit a hand-crafted threshold rule on depth summary
+statistics for the Stage-3/4 decision. This experiment actually trains a
+network, same early-fusion-by-concatenation mechanism as exp-3/exp-3.1
+(explicit first-conv expansion, RGB weights copied unchanged into
+channels 0-2, the 4th channel zero-initialized so the model is
+mathematically identical to the RGB-only baseline at init), but the 4th
+channel is a per-image min-max normalized Depth Anything V2 Small map
+(already generated for WP5, `datasets/wound-stage-depth-anything-v2-small/`)
+instead of a Task-2 tissue channel. No Task 1/Task 2 dependency at all —
+every one of the 1,091 PIID RGB images is pixel-dimension-identical to
+its depth map (verified directly, not assumed), so there's no crop/bbox
+step, unlike exp-1/2/3/3.1.
+
+**Status: scaffolded, unit-tested (`scripts/test_4ch_model.py`, all
+checks pass), local 1-fold/2-epoch smoke test passed. No 3-fold result
+yet — 0.8168 is not claimed to be beaten.** Dataset generation runs
+locally in seconds (no GPU, no model inference — just stacking an
+existing jpeg with an existing `.npy`); training itself still needs a
+GPU (Colab), via `colab_train.ipynb`.

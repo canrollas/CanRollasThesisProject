@@ -1,0 +1,62 @@
+# Experiment 14 -- RGB + 1 monocular relative-depth channel (Chapter 8).
+#
+# First exp/* in this chapter to actually TRAIN a network on RGB+depth
+# (every earlier depth-related result, WP5, was a hand-fit threshold rule
+# on depth summary statistics -- see
+# more_experiments/experiment_extended/wp5_depth_stage34/, which explicitly
+# scopes itself to "not a full depth-fusion rerun"). This experiment is
+# that full depth-fusion rerun, same early-fusion-by-concatenation idea as
+# exp-3/3.1 but for depth instead of tissue, and with no Task 1/2
+# dependency at all (see scripts/generate_dataset.py's docstring).
+#
+# Same backbone/head/protocol as task_3's best config (mit_b1 + CORN,
+# confirmed best in task_3/results/task_3_outputs/results/ablation_summary.csv)
+# trained on datasets/wound-staging-rgbd-exp-14/ (4-channel .npy: full
+# uncropped RGB + 1 per-image min-max normalized Depth-Anything-V2-Small
+# channel; see scripts/generate_dataset.py).
+#
+# That dataset has the exact same stage_X/<file> layout as task_3's own
+# RGB dataset (just a different data_root), so task_3/src/splits.py's own
+# build_folds() reproduces the ORIGINAL PIID 3-fold split assignments
+# exactly, for a paired comparison against the RGB baseline and every
+# other exp/* fusion attempt.
+#
+# Model/dataset code is NOT task_3/src's (3-channel, JPEG) -- see
+# scripts/model.py (same in_channels-generic first-conv-expansion
+# mechanism as exp-3/3.1) and scripts/dataset.py (4-channel .npy loader)
+# for the 4-channel versions. Everything else (engine/losses/metrics/
+# splits/augmentations/utils) is reused from task_3/src unchanged.
+
+encoder: mit_b1
+head: corn
+weights: imagenet
+in_channels: 4
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Paths below resolve relative to exp/exp14_depth_channel/ (this file's
+# grandparent), matching how scripts/train.py loads them -- not relative
+# to configs/.
+data_root: ../../../datasets/wound-staging-rgbd-exp-14
+metadata_csv: ../../../datasets/wound-staging-rgbd-exp-14/metadata.csv
+
+checkpoint_dir: checkpoints
+results_csv: results/results.csv
