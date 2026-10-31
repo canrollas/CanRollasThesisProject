@@ -8,14 +8,15 @@ packages described in the brief. See `summary.md` for findings and
 
 | WP | What | Status |
 |----|------|--------|
-| 1  | Exp-4/Exp-5 repeated per single tissue channel | **Code complete, not yet trained** — needs a Colab GPU session |
+| 1  | Exp-4/Exp-5, combined single tissue channel | Done (both trained on Colab, 3 folds each) |
 | 2  | Tissue fusion restricted to Stages 2–4 | Done |
 | 3  | Rule-based bone/tendon check for Stage 3 vs 4 | Done (negative result) |
 | 4  | Stage 3–4 error inspection (panels + case table) | Done |
 | 5  | Depth cue for Stage 3 vs 4 | Done (negative result) |
 
-Only WP1 needs GPU training; WP2–WP5 are pure inference/analysis over already
--trained checkpoints and ran locally (CPU-only).
+All five work packages are complete. WP1 needed GPU training (done on Colab, T4);
+WP2–WP5 are pure inference/analysis over already-trained checkpoints and ran
+locally (CPU-only). See `summary.md` §1 for WP1's findings.
 
 ## Shared assets reused (not retrained unless noted)
 
@@ -44,10 +45,12 @@ tissue type is here" survives. This directly tests whether exp-4/exp-5's 5-chann
 fusion needs per-type distinction or whether a single collapsed magnitude channel
 is enough.
 
-**Status: code complete and locally smoke-tested (CPU/MPS, 1 fold, 2 epochs, tiny
-subset — both architectures pass end to end, including exp-5's RGB
--baseline-reproduction check), zero real training runs executed yet.** This is the
-only GPU-bound piece, so it ships as two Colab notebooks:
+**Status: done.** Both architectures were locally smoke-tested (CPU/MPS, 1 fold, 2
+epochs, tiny subset — including exp-5's RGB-baseline-reproduction check) before
+being trained for real on Colab (T4), 3 folds each. Results: `results.csv`
+(top-level) and each architecture's own `results/results.csv` + `summary.csv`
+below. Findings in `summary.md` §1. The two Colab notebooks remain useful for
+reproducing the run:
 
 - `wp1_single_tissue_channel/exp4_concat/colab_train.ipynb`
 - `wp1_single_tissue_channel/exp5_tissue_only/colab_train.ipynb`
@@ -80,10 +83,11 @@ python train.py --workers 4
 considered part of Experiment 4 in the repository" — `more_experiments/results/comparison.csv`
 lists `E4-concat` and `E4-gated` as two separate recorded variants, so this WP
 treats `concat` as the primary Exp-4 architecture (consistent with exp-4's own
-notebook, which also only runs `gated` as a conditional follow-up). If the
-combined-channel `concat` result justifies it, the same dataset-level channel
-merge can be added to a `gated` variant later — not done here to keep this WP to
-the "minimal modification" instruction.
+notebook, which also only runs `gated` as a conditional follow-up). The
+combined-channel `concat` result came in slightly *below* the 5-channel-separate
+number (see `summary.md` §1), so per that same conditional logic there's no
+result here that would justify extending the channel merge to `gated` as a
+follow-up.
 
 **Known issue (corrected mid-implementation, flagged for the record):** an
 earlier version of this WP misread "tek kanal" ("single channel") as *five

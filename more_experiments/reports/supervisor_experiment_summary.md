@@ -1,7 +1,7 @@
 # Chapter 8 — Additional Wound Staging Experiments: Research Summary
 
 **Hazırlayan:** Can Rollas · **Danışman:** Prof. Dr. Yalın Baştanlar
-**Kapsam:** `more_experiments/` altında yürütülen tüm Task 1→Task 3 ve Task 2→Task 3 entegrasyon denemeleri (exp-1 … exp-7), kullanılan tüm checkpoint, sonuç CSV'si ve teşhis (diagnostic) scripti üzerinden doğrulanmıştır.
+**Kapsam:** `more_experiments/` altında yürütülen tüm Task 1→Task 3 ve Task 2→Task 3 entegrasyon denemeleri (exp-1 … exp-11), `task_3`'ün checkpoint ensembling denemesi, ve danışmanın ayrıca talep ettiği beş ek iş paketi (WP1-5, `more_experiments/experiment_extended/`) — kullanılan tüm checkpoint, sonuç CSV'si ve teşhis (diagnostic) scripti üzerinden doğrulanmıştır.
 
 ---
 
@@ -155,6 +155,17 @@ Tam tablo: `more_experiments/reports/master_experiment_comparison.csv`.
 | exp-6 stats-only | 20-dim | 3 | 0.3803±0.0094 | 0.3065±0.0151 | 0.3550±0.0091 | −43.65 |
 | exp-6 stats rezidüel | 20-dim+RGB | 3 | 0.8159±0.0138 | 0.8175±0.0129 | 0.9131±0.0156 | −0.09 |
 | exp-7 global-local ROI | RGB+ROI | 3 | 0.8120±0.0098 | 0.8142±0.0095 | 0.9131±0.0090 | −0.48 |
+| exp-9 çoklu-öğretmen damıtma | distilled | **1 (kısmi)** | 0.7403 | 0.7404 | 0.8583 | n/a — bkz. §11 |
+| exp-10 `heads` | RGB (donmuş+kalıntı) | 3 | 0.8139±0.0132 | 0.8167±0.0122 | 0.9110±0.0115 | −0.29 |
+| exp-10 `attention` | RGB (donmuş+kalıntı) | 3 | 0.8130±0.0102 | 0.8155±0.0103 | 0.9120±0.0105 | −0.38 |
+| exp-10 `contrastive` | RGB (donmuş+kalıntı) | 3 | 0.8167±0.0144 | 0.8188±0.0136 | 0.9138±0.0142 | −0.01 |
+| exp-11 probe `final` | donmuş 512d | 3 | 0.8103±0.0111 | 0.8122±0.0113 | 0.9125±0.0101 | −0.65 |
+| exp-11 probe `stage3` | donmuş 320d | 3 | 0.7709±0.0198 | 0.7725±0.0199 | 0.8920±0.0078 | −4.59 |
+| WP1 exp-4 concat, birleşik kanal | iki-kol, 1ch | 3 | 0.7909±0.0282 | 0.7935±0.0277 | 0.9057±0.0174 | −2.59 |
+| WP1 exp-5 tissue_only, birleşik kanal | rezidüel, 1ch | 3 | 0.8131±0.0079 | 0.8150±0.0074 | 0.9118±0.0131 | −0.37 |
+| **Ensemble (4 model, sum-rule)** | softmax ortalama | 3 | **0.8222±0.0136** | **0.8239±0.0142** | **0.9178±0.0105** | **+0.54** |
+
+(exp-9/10/11 ve WP1-5 satırları `master_experiment_comparison.csv`'ye henüz eklenmedi — sayılar kendi exp klasörlerinin `results/` dosyalarından doğrudan alındı, bkz. §11-14. Ensemble satırı Ek C'den — **Chapter 8'in tek pozitif sonucu**: tek model füzyonlarının hiçbiri baseline'ı geçemezken, zaten eğitilmiş 4 farklı mimarinin tahminlerini basitçe ortalamak geçti.)
 
 ## 9. Bilimsel Yorumlama
 
@@ -189,6 +200,201 @@ Tez için üç somut çıkarım:
 
 ---
 
+## 11. Çoklu-Öğretmen Özellik Damıtma (exp-9)
+
+**Soru:** Üç farklı, önceden eğitilmiş mimarinin öğrendiği temsiller tek bir öğrenci kodlayıcıya damıtılırsa (knowledge distillation), bu öğrenci RGB temel çizgisini geçecek kadar zengin bir temsil öğrenir mi?
+
+**Mimari — 2 aşama:**
+
+**Aşama 1 (damıtma, etiketsiz):** Öğrenci kodlayıcı (`efficientnet-b0` — bilerek 3 öğretmenden farklı bir mimari, böylece sadece tek bir öğretmeni yeniden türetmiyor), her öğretmen için ayrı bir doğrusal projeksiyon başlığı üzerinden, o öğretmenin havuzlanmış gömme vektörünü yeniden üretmeye çalışır. Üç öğretmen: `mit_b1` (512d), `resnext50_32x4d` (2048d), `convnextv2_tiny` (768d) — her biri kendi fold-özel checkpoint'inden, donmuş, sadece hedef gömme vektörü üretmek için kullanılır. Kayıp, üç öğretmen üzerinden ortalanan kosinüs mesafesidir (ham MSE yerine, üç öğretmenin çok farklı gömme ölçeklerine karşı sağlam olsun diye):
+
+$$\mathcal{L}_{\text{distill}} = \frac{1}{3}\sum_{t \in \{\text{mit\_b1, resnext50, convnextv2}\}} \left(1 - \cos\big(\text{proj}_t(f_{\text{öğrenci}}),\ f_t^{\text{öğretmen}}\big)\right)$$
+
+Hiçbir evreleme etiketi bu aşamada kullanılmaz — sadece Adım 1'de önbelleğe alınmış öğretmen gömme vektörleri (60 epoch, AdamW, kosinüs LR takvimi).
+
+**Aşama 2 (sınıflandırma):** Damıtılmış öğrenci donuk tutulur (Faz A — doğrusal prob, eğitilebilir parametre sayısı 1.091 görüntü için kasıtlı küçük), üzerine taze bir `CornHead` gerçek evre etiketleriyle eğitilir (`task_3/src/engine.py`'nin değiştirilmemiş `fit()`/`run_epoch()`'u). Her fold için her öğretmen hedefi **o öğretmenin kendi fold-i checkpoint'inden** gelir (fold-i'yi kendi eğitiminde dışlamış olan) — ne damıtma ne sınıflandırma aşaması fold-i'nin test görüntülerini sızdırmaz.
+
+**⛔ Durum — sadece fold-0, bilinçli olarak durduruldu.** Commit `5d4a7f6`'nın kendi notu: *"Killed after fold0 (acc 0.7403 vs mit_b1\_\_corn's 0.8039) -- doesn't beat baseline, consistent with every other fusion attempt in this chapter; not pursued further."* Fold-1/2 hiç çalıştırılmadı.
+
+| Metrik | fold-0 |
+|---|---|
+| Accuracy | 0.7403 |
+| Macro-F1 | 0.7404 |
+| MAE | 0.279 |
+| QWK | 0.8583 |
+
+(`more_experiments/exp/exp9_feature_distillation/results/exp9_results.csv` — dosyada ayrıca `distill_val_cos_loss=0.9902` ile `accuracy=0.0` olan bir ilk satır daha var; bu, damıtmanın yakınsamadığı erken/başarısız bir deneme olarak değerlendirilir, ikinci satır düzeltilmiş/yakınsamış çalıştırmadır — ayrım repoda ayrıca etiketlenmemiş, şeffaflık için burada not edildi.)
+
+**Bulgu:** Tek fold'luk kısmi sonuç bile (0.7403), Chapter 8'in diğer tüm füzyon/temsil denemeleriyle aynı örüntüyü izliyor: temel çizgiyi geçmiyor. Üç farklı mimariden damıtılmış bir temsil, gerçek etiketlerle uçtan uca eğitilmiş RGB temel çizgisinin yerini tutmuyor.
+
+## 12. Sınıra-Özel Temsil Öğrenme (exp-10)
+
+**Soru:** CORN'un üç koşullu kararı aynı havuzlanmış 512-boyutlu vektörü okuyor ve yalnızca doğrusal ağırlık satırlarıyla ayrışıyor (`CornHead`, tek bir `Linear(512,3)`). Her karara özgü bir mekânsal/temsilsel ayrım sağlanırsa performans artar mı?
+
+**Mimari:** $\text{logit}_k = \text{baseline\_logit}_k + \delta_k$ ($k\in\{0,1,2\}$, CORN'un 3 koşullu sınırı). `baseline_logit_k`, gerçek eğitilmiş, **donmuş** `mit_b1__corn` checkpoint'inin `CornHead`'inden gelir, hiçbir modda eğitilmez. Her sınırın kendi kalıntı başlığı:
+
+$$A_k = \sigma\big(\text{Conv}_{1\times1,k}(F)\big), \qquad z_k = \text{GAP}(F \odot A_k), \qquad \delta_k = \text{MLP}_k(z_k)$$
+
+$F$ donmuş backbone'un son özellik haritası ($[B,512,7,7]$). Üç mod $A_k$'nin tanımında farklılaşır:
+
+| Mod | $A_k$ | Test ettiği soru |
+|---|---|---|
+| `heads` | sabit $1$ (yok) | Yalnızca sınıra-özel doğrusal olmayan karar fonksiyonu işe yarıyor mu? |
+| `attention` | öğrenilir, yukarıdaki formül | Sınıra-özel mekânsal seçim işe yarıyor mu? |
+| `contrastive` | `attention` + sınır-başına supervised contrastive terim | Sınır temsillerini açıkça ayrıştırmak işe yarıyor mu? |
+
+Kasıtlı tasarım farkı (exp-5/6/7'nin aksine): $\text{MLP}_k$'nin son katmanı sıfırla başlatılmıyor (gradyanın attention konvolüsyonuna gecikmeden ulaşması için) — kuruluşta $\text{logit}_k \neq \text{baseline\_logit}_k$ tam olarak, ama backbone ve baseline head donmuş kalıyor (doğrudan doğrulandı).
+
+**Sonuç (Colab, 3 mod × 3 fold, gerçek eğitim):**
+
+| Mod | Accuracy | Macro-F1 | QWK |
+|---|---|---|---|
+| **baseline** (referans) | 0.8168 ± 0.0150 | 0.8182 ± 0.0138 | 0.9138 ± 0.0164 |
+| `heads` | 0.8139 ± 0.0132 | 0.8167 ± 0.0122 | 0.9110 ± 0.0115 |
+| `attention` | 0.8130 ± 0.0102 | 0.8155 ± 0.0103 | 0.9120 ± 0.0105 |
+| `contrastive` | 0.8167 ± 0.0144 | 0.8188 ± 0.0136 | 0.9138 ± 0.0142 |
+
+`contrastive` baseline'dan istatistiksel olarak ayırt edilemez; `heads`/`attention` 1 std içinde ama hafif altında. Hiçbiri 0.8168'i geçmedi, ama hiçbiri de anlamlı altına düşmedi.
+
+**Attention tanısı:** `attention` modunda 3 bağımsız konvolüsyon birbirinin neredeyse aynısını öğrendi (ortalama kosinüs 0.9964, argmax-uyumu %11.55) — "sınıra-özel mekânsal seçim" iddiası desteklenmiyor. `contrastive` bunu ölçülebilir azalttı (kosinüs 0.9170, argmax-uyumu %23.34) ama bu ayrışma **doğruluğa dönüşmedi** (1 std içinde) — exp-6 ile aynı örüntü: içerik-duyarlılık arttı, aggregate accuracy hareket etmedi.
+
+## 13. Doğrusal Prob (Linear Probe) Teşhisi (exp-11)
+
+**Soru:** MiT-B1 kodlayıcısı, CORN'un yanlış sınıflandırdığı yaraları ayırt edebilecek bilgiyi zaten öğrenmiş mi (CORN'un kendi doğrusal kararı bunu kullanmıyor mu), yoksa bu bilgi kodlayıcıda hiç yok mu? Kodlayıcı hiç yeniden eğitilmeden, aynı donmuş $z$ üzerine farklı bir doğrusal karar kuralı (`LogisticRegression`, $C$ validation macro-F1 ile seçilen) eğitiliyor.
+
+**İki seviye:** `final` (512d, `CornHead`'in okuduğu aynı vektör) ve `stage3` (320d, MiT-B1'in son katmanından önceki aşama — "bilgi daha erken mi kayboluyor" kontrolü).
+
+İç tutarlılık: her fold'da probe'un okuduğu donuk CORN tahminleri, `ablation_results.csv`'deki aynı fold'un accuracy'siyle 4 ondalık basamağa kadar eşleşti (0.8122/0.8370/0.8011).
+
+**Sonuç — 3 fold, gerçek:**
+
+| Model | Accuracy | Macro-F1 | MAE | QWK |
+|---|---|---|---|---|
+| **CORN** (referans) | 0.8168 ± 0.0150 | 0.8182 ± 0.0138 | 0.1896 ± 0.0204 | 0.9138 ± 0.0164 |
+| Probe `final` (512d) | 0.8103 ± 0.0111 | 0.8122 ± 0.0113 | 0.1952 ± 0.0153 | 0.9125 ± 0.0101 |
+| Probe `stage3` (320d) | 0.7709 ± 0.0198 | 0.7725 ± 0.0199 | 0.2355 ± 0.0202 | 0.8920 ± 0.0078 |
+
+**Hata kırılımı (3 fold toplamı, 200 CORN hatası):**
+
+| Seviye | Kurtarılan | Yeni hata | Havuzlanmış kurtarma oranı |
+|---|---|---|---|
+| `final` | 29 | 36 | %14.5 |
+| `stage3` | 50 | 100 | %25.0 |
+
+`stage3` her fold'da `final`'den fazla hata kurtarıyor ama çok daha fazla yeni hata yaratıyor — tutarlı bir örüntü. true=stage_3/pred=stage_4 hücresinde (n=65): `final` 10 kurtarma (%15.4), `stage3` 19 (%29.2) — ama fold2'de `final` bu hücrede sıfır kurtarma yapıyor.
+
+**Yorum:** CORN'un okuduğu temsilde, CORN'un kullanmadığı gerçek ama sınırlı bir ek bilgi var (29 tutarlı kurtarma, 3/3 fold). "Encoder yetersiz" değil, "CORN'un zaten kullandığına yakın bir temsil okuyor" demek. Tek bir probe sonucu başlı başına mimari değişikliği haklı çıkarmaz.
+
+## 14. Danışman Ek Deneyleri — WP1-5 (`more_experiments/experiment_extended/`)
+
+Bölüm 1-13, tez taslağının orijinal Chapter 8 kapsamını (exp-1→exp-11 + ensemble) kapsar. Bu bölüm danışmanın ayrıca talep ettiği beş ek iş paketini (WP1-5) aynı titizlikle belgeler — `more_experiments/experiment_extended/` altında, mevcut checkpoint/veri/split yeniden kullanılarak, hiçbir önceki sonuç üzerine yazılmadan.
+
+**Ortak altyapı — CORN kod çözme kuralı (tüm WP'lerde aynı, değiştirilmedi):** $k$. koşullu lojit $\ell_k$ için $P(Y>k\mid Y>k-1)=\sigma(\ell_k)$, survival $S_k=\prod_{j\le k}\sigma(\ell_j)$, tahmin edilen evre $=1+|\{k:S_k>0.5\}|$ (`task_3/corn_explain.py`'nin `corn_outputs()`'u).
+
+### WP1 — Tek birleşik doku kanalı (Exp-4 / Exp-5)
+
+**Soru (danışmanın orijinal notu):** "Tek kanal exp-4 ve exp-5 denenecek" — 5 doku olasılık haritası yerine tek bir birleşik kanal.
+
+**Matematik:** exp-3 verisinin 5 doku kanalı ($p_1,\dots,p_5$ = granülasyon, slough, nekroz, tendon, kemik olasılıkları), piksel bazında maksimumla tek kanala indirgeniyor:
+
+$$c(x,y) = \max\big(p_{\text{gran}}(x,y), p_{\text{slough}}(x,y), p_{\text{nekroz}}(x,y), p_{\text{tendon}}(x,y), p_{\text{kemik}}(x,y)\big)$$
+
+Doku tipi kimliği kasıtlı atılıyor; sadece "burada herhangi bir anormal doku var mı, ne kadar güçlü" sinyali kalıyor. exp-4 (`concat`, $z=\text{MLP}([F_{rgb};F_{doku}])$) ve exp-5 (`tissue_only` rezidüel, $z_{final}=z_{rgb}+\delta z$, $\delta z$ sadece $c$'den) mimarileri değiştirilmeden kullanılıyor.
+
+**Sonuç (Colab T4, 3 fold, gerçek eğitim):**
+
+| | Accuracy | Macro-F1 | MAE | QWK |
+|---|---|---|---|---|
+| RGB temel çizgi | 0.8168 | 0.8182 | — | 0.9138 |
+| Exp-4 concat, 5 kanal ayrı (referans) | 0.7983 | 0.8003 | — | 0.9109 |
+| **Exp-4 concat, birleşik kanal** | 0.7909 ± 0.0282 | 0.7935 ± 0.0277 | 0.2127 | 0.9057 ± 0.0174 |
+| Exp-5 tissue_only, 5 kanal ayrı (yalnızca fold1, referans) | 0.8370 | 0.8376 | — | 0.9323 |
+| **Exp-5 tissue_only, birleşik kanal** | 0.8131 ± 0.0079 | 0.8150 ± 0.0074 | 0.1933 | 0.9118 ± 0.0131 |
+
+**Bulgu:** İki bağımsız mimaride de aynı yönde küçük bir fark — birleşik kanal, 5 kanalı ayrı tutmaktan biraz daha kötü (Exp-4: −0.0074 acc/−0.0068 f1/−0.0052 qwk; Exp-5 fold1-eşleştirilmiş: −0.0138/−0.0129/−0.0064), ikisi de RGB temel çizgisine yakın kalıyor. Doku **tipi** kimliğinin küçük ama gerçek bir katkısı var.
+
+### WP2 — Stage 1 hariç tutulan doku füzyonu
+
+**Soru:** Doku füzyonu sadece Stage 2-4 kararlarına uygulanıp Stage 1'e hiç karışmazsa performans artar mı?
+
+**Mekanizma — çıkarım-zamanı kademeli (cascade), yeni mimari değil:**
+
+$$\hat{y}(x) = \begin{cases} \text{decode}(f_{\text{RGB}}(x)) & \text{eğer decode}(f_{\text{RGB}}(x)) = \text{stage\_1} \\ \text{decode}(f_{\text{fusion}}(x)) & \text{aksi halde} \end{cases}$$
+
+$f_{\text{RGB}}$ (donmuş `mit_b1__corn`) ve $f_{\text{fusion}}$ (donmuş exp-4 concat, 5 kanal) iki ayrı, zaten eğitilmiş model; yeniden eğitim yok. Dal seçimi sadece $f_{\text{RGB}}$'nin kendi tahminine dayanır, gerçek etikete bakmaz.
+
+**Sonuç (1091 test örneği, 3 fold havuzlanmış):**
+
+| Model | Scope | n | Accuracy | Macro-F1 | QWK |
+|---|---|---|---|---|---|
+| baseline | tüm evreler | 1091 | 0.8167 | 0.8185 | 0.9141 |
+| baseline | stage 2-4 | 861 | 0.8002 | 0.6055 | 0.8528 |
+| fusion (kısıtsız) | stage 2-4 | 861 | 0.7724 | 0.5901 | 0.8371 |
+| **cascade (Stage-1 hariç)** | stage 2-4 | 861 | **0.7666** | **0.5876** | **0.8351** |
+
+(`stages_2_4` macro-F1'in düşük görünmesi, bu alt kümenin gerçek etiketinde stage_1 hiç olmamasından kaynaklanan bir metrik artefaktıdır, model çöküşü değil.)
+
+Stage-1 kararlarının kararlılığı doğrudan doğrulandı: baseline'ın stage_1 dediği 223 örneğin 223'ünde cascade aynı fikirde; kalan 868'inde cascade'in tahmini kısıtsız fusion modeliyle birebir (868/868) aynı.
+
+**Bulgu (negatif sonuç):** Stage 1'i füzyondan çıkarmak yardımcı olmuyor — cascade, Stage 2-4 alt kümesinde bile kısıtsız füzyondan hafifçe daha kötü, ikisi de RGB-only'den daha kötü. Cascade her çalıştığında aynı donmuş füzyon checkpoint'ini kullanıyor — *ne zaman* danışıldığını değiştiriyor, füzyonun kendi zayıflığını düzeltmiyor.
+
+### WP3 — Kemik/tendon kural tabanlı kontrol (Stage 3 vs 4)
+
+**Soru:** Model Stage 3/4 arasında kararsız kaldığında, kemik/tendon olasılık haritalarına bakan basit bir kural hataları düzeltir mi?
+
+**Kural:**
+
+$$e(x) = \max\big(\text{bone\_max}(x), \text{tendon\_max}(x)\big), \qquad \hat{y}_{\text{rule}}(x) = \begin{cases}\text{stage\_4} & \hat{y}(x)=\text{stage\_3} \text{ ve } e(x)\ge\tau \\ \hat{y}(x) & \text{aksi halde}\end{cases}$$
+
+`bone_max`/`tendon_max`: tahmini yara bölgesi içindeki piksel-bazlı maksimum olasılık. Kural tek yönlü — sadece stage_3→stage_4 düzeltmesi yapabilir. $\tau$ yalnızca validation'daki 110 "contested" örnekte ızgara araması ile seçildi; test setine (530 contested örnek) $\tau$ sabitlendikten sonra tek seferde dokunuldu.
+
+**Sonuç:** $\tau=1.0$ (hiçbir gözlemlenen değer buna ulaşmıyor — kural hiç tetiklenmiyor). `n_changed_by_rule=0`. Pair-accuracy önce/sonra: 0.8075 (428/530). 3→4 hataları 65→65, 4→3 hataları 37→37 (değişmedi).
+
+**Bulgu (negatif sonuç):** Kural hiçbir şeyi değiştirmiyor. WP4 ile tutarlı: doğru Stage 4'te bile `bone_max` küçük (0.0546), kaçırılan (true=4,pred=3) örneklerde **daha yüksek** (0.0652) — basit "daha fazla kemik → Stage 4" ilişkisi net değil.
+
+### WP4 — Stage 3-4 hata incelemesi (keşifsel)
+
+Model/eğitim yok — 3-fold test tahminleri üzerinden bir vaka tablosu (`stage34_error_cases.csv`, 530 satır) ve görsel inceleme panelleri (`error_panels/`) üretildi.
+
+| Grup | n |
+|---|---|
+| Doğru Stage 3 | 193 |
+| Doğru Stage 4 | 235 |
+| Hata: gerçek 3 → tahmin 4 | 65 |
+| Hata: gerçek 4 → tahmin 3 | 37 |
+
+**Ölçülen örüntüler:** Her iki hata grubu da kendi "doğru" karşılığından düşük güvenli (`P(pred)`): 0.8405→0.8150 (3 tarafı), 0.8858→**0.7541** (4 tarafı). Kemik/tendon gruplar arası net ayrışmıyor (`error_4to3`, `correct_4`'ten daha yüksek kemik sinyaline sahip). `wound_detected` 530/530 True. Bu bölüm WP3/WP5'in kural tasarımını bilgilendirdi (önce çalıştırıldı).
+
+### WP5 — Derinlik ipucu (Stage 3 vs 4)
+
+**Soru:** Depth Anything V2'nin göreli, tek-görüntü derinlik haritaları Stage 3/4 ayrımına yardımcı olur mu?
+
+**Sinyal analizi:** 530 contested örnekte, `wound_depth_std` ve `wound_depth_range`, true=stage_4 grubunda p<0.01 ile anlamlı (doğru: std=0.520, yanlış: std=0.430).
+
+**Genişletilmiş kural:**
+
+$$\hat{y}_{\text{rule+depth}}(x) = \begin{cases}\text{stage\_4} & \hat{y}(x)=\text{stage\_3} \text{ ve } \big(e(x)\ge\tau_{\text{doku}} \text{ veya } d(x)\le\tau_{\text{depth}}\big) \\ \hat{y}(x) & \text{aksi halde}\end{cases}$$
+
+$d(x)$ = yara-içi ortalama derinlik $-$ yara-dışı (deri) ortalama derinlik. $\tau_{\text{depth}}$, WP3 ile aynı 110 validation örneğinde seçildi.
+
+**Sonuç:** $\tau_{\text{depth}}=-1.54$, test setinde hiç tetiklenmiyor. Pair-accuracy yine 0.8075, iki hata yönü de değişmedi.
+
+**Bulgu (negatif sonuç):** Grup-ortalaması düzeyinde anlamlı fark olsa bile, 110 örnekte fit edilen tek bir global eşik bunu test setine aktaramadı.
+
+### WP1-5 Özet
+
+| WP | Soru | Sonuç |
+|---|---|---|
+| 1 | Doku kanalları tek kanalda birleştirilirse? | Hafif, tutarlı kötüleşme (iki mimaride de) — doku tipi kimliği küçük ama gerçek bilgi taşıyor |
+| 2 | Füzyon sadece Stage 2-4'e uygulanırsa? | Hayır yardımcı değil — RGB-only her zaman daha iyi |
+| 3 | Kemik/tendon kuralı 3↔4 hatalarını düzeltir mi? | Hayır — eşik test setinde hiç tetiklenmiyor (0 değişim) |
+| 4 | 3-4 hatalarında görünür bir ipucu var mı? | Düşük güven/yüksek entropi ölçülebilir; kemik/tendon tek başına net ayrıştırmıyor |
+| 5 | Derinlik 3-4 ayrımına yardımcı olur mu? | Grup düzeyinde zayıf sinyal var ama örnek-düzeyi kurala aktarılamıyor (0 değişim) |
+
+Beş iş paketi de Chapter 8'in genel örüntüsünü doğruluyor: ek bilgi kaynaklarının istatistiksel izleri var, ama mevcut basit füzyon/kural tasarımlarıyla güvenilir bir accuracy kazancına dönüşmüyor.
+
+---
+
 ## Ek A — Keşfedilen Tüm Deneylerin Tam Envanteri
 
 | ID | Durum | Not |
@@ -207,7 +413,17 @@ Tez için üç somut çıkarım:
 | exp-6/RGB tamamlayıcılık analizi | ✅ Tamamlandı | Bu rapor hazırlığında yeniden çalıştırılıp doğrulandı. |
 | exp-7 global-local ROI fusion (Faz A) | ✅ Tamamlandı, 3-fold | Dondurulmuş backbone. |
 | exp-7 Faz B (ince ayar) | ⛔ **Planlandı, çalıştırılmadı** | Kod mevcut (`unfreeze_last_stage()`, test edildi) ama eğitim yapılmadı — bilinçli karar. |
-| Depth-destekli evreleme | ⛔ **Önerildi, uygulanmadı** | Sadece bir veri kümesi hazırlandı, hiç commit edilmedi, sonra silindi. Kod/sonuç yok. |
+| exp-9 çoklu-öğretmen damıtma | ⚠️ **Kısmi — sadece fold-0** | Commit `5d4a7f6` ile bilinçli olarak durduruldu (temel çizgiyi geçmiyor). §11. |
+| exp-10 sınıra-özel temsil (`heads`/`attention`/`contrastive`) | ✅ Tamamlandı, 3 mod × 3-fold | Hiçbiri baseline'ı geçmedi, hiçbiri anlamlı altına düşmedi. §12. |
+| exp-11 linear probe (`final`/`stage3`) | ✅ Tamamlandı, 3-fold | §13. |
+| Depth-destekli evreleme (tüm evreler, genel) | ⛔ **Önerildi, uygulanmadı** | Orijinal Chapter 8 kapsamında: veri kümesi hazırlanıp commit edilmeden silindi. **Not — sonradan kısmen değişti:** `datasets/wound-stage-depth-anything-v2-small/` (Depth Anything V2 Small) ayrı bir tarihte yeniden üretildi ve danışmanın WP5 isteği kapsamında, **sadece Stage 3/4 ayrımına kısıtlı** olarak kullanıldı (bkz. §14/WP5) — genel/tüm-evreler bir depth-füzyon denemesi hâlâ yapılmadı. |
+| **Danışman Ek Deneyleri (WP1-5)** | | `more_experiments/experiment_extended/`, bkz. §14 |
+| WP1 exp-4 concat, birleşik doku kanalı | ✅ Tamamlandı, 3-fold (Colab T4) | Hafif, tutarlı kötüleşme. |
+| WP1 exp-5 tissue_only, birleşik doku kanalı | ✅ Tamamlandı, 3-fold (Colab T4) | Hafif, tutarlı kötüleşme (daha küçük etki). |
+| WP2 Stage-1-hariç füzyon kademesi | ✅ Tamamlandı | Negatif sonuç — RGB-only daha iyi. |
+| WP3 kemik/tendon kural | ✅ Tamamlandı | Negatif sonuç — eşik hiç tetiklenmiyor. |
+| WP4 Stage 3-4 hata incelemesi | ✅ Tamamlandı | 530 vaka, görsel paneller (`error_panels/`, klinik fotoğraf içerdiği için git'te izlenmiyor). |
+| WP5 derinlik-genişletilmiş kural | ✅ Tamamlandı | Negatif sonuç — grup-düzeyi sinyal var, örnek-düzeyi kurala aktarılamıyor. |
 
 **Yeniden adlandırma notu:** Bu deney ailesinin dizin adı geliştirme sürecinde `exp8_global_local_roi_fusion` → `exp7_global_local_roi_fusion` olarak değiştirildi (depth denemesinin "exp-7" numarasını hiç kullanmamış/commit'lememiş olması nedeniyle numara boşaldı). Git geçmişinde bu değişiklik tek bir commit olarak görünür (`exp8` ismi hiçbir commit'te yoktur) — kronolojik sıra commit mesajlarından değil, `git log --reverse` ile doğrulanmıştır.
 

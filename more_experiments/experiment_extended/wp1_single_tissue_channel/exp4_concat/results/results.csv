@@ -1,0 +1,4 @@
+config_id,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,train_time_s
+mit_b1__corn__wp1_exp4concat__tissue=combined_max,mit_b1,corn,imagenet,0,13.475,0.7514,0.7545,0.2569,0.8819,1132.4
+mit_b1__corn__wp1_exp4concat__tissue=combined_max,mit_b1,corn,imagenet,1,13.475,0.8149,0.8158,0.1851,0.9233,21.7
+mit_b1__corn__wp1_exp4concat__tissue=combined_max,mit_b1,corn,imagenet,2,13.475,0.8065,0.8101,0.1962,0.9118,1142.3

@@ -1,0 +1,4 @@
+config_id,tissue_channel,encoder,head,weights,fold,params_m,accuracy,macro_f1,mae,qwk,early_stopped_at_epoch,train_time_s
+mit_b1__corn__wp1_exp5tissueonly__tissue=combined_max,combined_max,mit_b1,corn,baseline_checkpoint,0,13.279,0.8122,0.8135,0.1934,0.9152,11,39.0
+mit_b1__corn__wp1_exp5tissueonly__tissue=combined_max,combined_max,mit_b1,corn,baseline_checkpoint,1,13.279,0.8232,0.8247,0.1768,0.9259,13,47.1
+mit_b1__corn__wp1_exp5tissueonly__tissue=combined_max,combined_max,mit_b1,corn,baseline_checkpoint,2,13.279,0.8038,0.8067,0.2098,0.8944,11,40.9

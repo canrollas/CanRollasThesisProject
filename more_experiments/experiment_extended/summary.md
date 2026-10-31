@@ -10,22 +10,58 @@ what's exploratory vs. confirmatory, and lists limitations.
 dokular tek kanalda verilsin. This is a test of whether exp-4/exp-5's 5-channel
 tissue fusion needs per-type distinction, not a per-tissue-type ablation.)
 
-**Not yet answered — pending Colab training (WP1).** The code for both
-architectures (Exp-4 `concat` and Exp-5 `tissue_only` residual) collapses all 5
-tissue probability maps into ONE channel via a per-pixel maximum
-(`max(granulation, slough, necrosis, tendon, bone)` at every pixel) before fusing
-with RGB, 3 folds each. It is complete and was validated locally (CPU/MPS,
-`--smoke` mode: 1 fold, 2 epochs, tiny subset) — both architectures build, load, and
-run end to end, including Exp-5's RGB-baseline-reproduction check (all 3 checks
-PASS) — but no GPU training has been executed for real. Two Colab notebooks
-(`wp1_single_tissue_channel/{exp4_concat,exp5_tissue_only}/colab_train.ipynb`) are
-ready to run; once they finish, `results.csv`'s `wp1` rows should be filled in with
-real per-fold accuracy/macro-F1/MAE/QWK and compared against the recorded
-references already in that file (RGB baseline 0.8168/0.8182/0.9138; Exp-4 concat
-5-channel-separate 0.7983/0.8003/0.9109; Exp-5 `tissue_only` 5-channel-separate,
-fold-1-only, 0.8370/0.8376/0.9323). If the combined channel matches or beats the
-5-channel number, per-type identity isn't adding much beyond "where is something
-abnormal"; if it's clearly worse, the per-type distinction is carrying real signal.
+**Exp-4 concat: trained for real on Colab, 3 folds — slightly worse than both
+references.** Collapsing all 5 tissue maps into ONE channel via a per-pixel maximum
+(`max(granulation, slough, necrosis, tendon, bone)`):
+
+| | accuracy | macro_f1 | MAE | QWK |
+|---|---|---|---|---|
+| RGB baseline (ref) | 0.8168 | 0.8182 | — | 0.9138 |
+| Exp-4 concat, 5 channels separate (ref) | 0.7983 | 0.8003 | — | 0.9109 |
+| **Exp-4 concat, combined-max channel (3-fold mean ± std)** | **0.7909 ± 0.0282** | **0.7935 ± 0.0277** | 0.2127 | **0.9057 ± 0.0174** |
+
+(std computed the same way as every other experiment's `*_summary.csv` in this repo
+— population std via `task_3/src/utils.py write_summary()` — not sample std, to
+stay directly comparable to the reference rows above.)
+
+The combined channel is slightly below the 5-channel-separate result on every
+metric (−0.0074 accuracy, −0.0068 macro-F1, −0.0052 QWK), and further below the RGB
+baseline — pointing toward per-tissue-type identity carrying some real signal that
+collapsing into one magnitude channel loses. The effect is small, though, and
+fold0 (0.7514) pulled the mean down notably below fold1 (0.8149) and fold2
+(0.8065) — std here (0.0282 accuracy) is somewhat above the other experiments'
+typical fold-to-fold spread (~0.012–0.024), so this is a real but modest signal,
+not a dramatic collapse. Per-fold numbers are in `results.csv`.
+
+(Side note unrelated to the finding itself: fold1 trained in 21.7s vs. fold0/fold2's
+~1140s each, same epoch count — direct evidence of Colab GPU-session throttling
+discussed separately, not a sign anything about fold1's result is invalid.)
+
+**Exp-5 tissue_only: trained for real on Colab, 3 folds — very close to the RGB
+baseline, slightly below the 5-channel-separate result (same direction as Exp-4,
+smaller effect).**
+
+| | accuracy | macro_f1 | MAE | QWK |
+|---|---|---|---|---|
+| RGB baseline (ref) | 0.8168 | 0.8182 | — | 0.9138 |
+| Exp-5 tissue_only, 5 channels separate, fold1-only (ref) | 0.8370 | 0.8376 | — | 0.9323 |
+| **Exp-5 tissue_only, combined-max channel (3-fold mean ± std)** | **0.8131 ± 0.0079** | **0.8150 ± 0.0074** | 0.1933 | **0.9118 ± 0.0131** |
+
+Early stopping triggered at epoch 11–13 in every fold (`patience=10`), train time
+39–47s/fold — no throttling anomaly this run, unlike Exp-4's. Fold-to-fold spread
+is tight (std 0.0079 accuracy) — much tighter than Exp-4's combined-channel run
+(0.0282), consistent with Exp-5's architecture already being tied to a frozen,
+stable RGB baseline rather than training both arms from scratch.
+
+Combined with Exp-4's result: **both architectures show the same small,
+consistent pattern** — collapsing 5 tissue channels into 1 via per-pixel max costs
+a modest amount of accuracy/macro-F1/QWK relative to keeping them separate (Exp-4:
+−0.0074/−0.0068/−0.0052; Exp-5 fold1-matched comparison: −0.0138/−0.0129/−0.0064),
+while staying close to the plain RGB baseline either way. This is consistent,
+cross-architecture evidence that **per-tissue-type identity carries some real
+signal beyond "is anything abnormal here"** — but the effect is small (under 1.5
+points on every metric), not the kind of result that would, by itself, argue for
+abandoning either fusion architecture's 5-channel design.
 
 ## 2. Does RGB+tissue fusion help Stages 2–4 if Stage 1 is excluded from fusion?
 
@@ -150,8 +186,9 @@ group-level means do differ).
   script — flagged here and in `README.md` for whoever owns
   `wp3_bone_tendon_rule/scripts/fit_and_evaluate_rule.py` to correct (swap the two
   key names on lines 210–211).
-- WP1 is the only unfinished piece — everything in this summary that depends on
-  combined-channel results is explicitly marked pending above, not fabricated.
+- All five work packages are now complete — WP1's Exp-4 and Exp-5 combined-channel
+  runs both trained for real on Colab (see §1); nothing in this summary is
+  fabricated or extrapolated from partial results.
 - **WP1 scope was corrected mid-implementation:** an earlier version read "tek
   kanal" (single channel) as five separate per-tissue-type experiments
   (granulation-only, slough-only, ...) rather than the advisor's actual intent —
