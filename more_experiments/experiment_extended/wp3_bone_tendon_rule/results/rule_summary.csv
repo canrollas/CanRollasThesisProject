@@ -1,0 +1,2 @@
+tau,val_contested_n,val_acc_with_rule,test_pair_n,n_changed_by_rule,before_pair_accuracy,after_pair_accuracy,corrected_stage4_predicted_as_stage3_now_fixed,previously_correct_stage3_now_wrongly_flipped_to_stage4,before_true3_pred4_errors,after_true3_pred4_errors,before_true4_pred3_errors,after_true4_pred3_errors
+1.0,110,0.8056,530,0,0.8075,0.8075,0,0,37,37,65,65

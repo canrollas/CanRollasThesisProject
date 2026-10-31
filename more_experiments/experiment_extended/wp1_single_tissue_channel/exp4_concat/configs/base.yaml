@@ -1,0 +1,45 @@
+# Work Package 1 (advisor extended experiments) -- exp-4 architecture
+# (late fusion, concat), repeated with exactly ONE tissue channel at a
+# time instead of all five, per the advisor's request.
+#
+# Same backbone/head/protocol/data as exp-4 itself (single-phase training,
+# freeze_epochs=0, same lr/epochs/augment/split) -- the ONLY change from
+# exp-4's own config is the tissue arm's input (1 channel, selected by
+# --tissue-channel, instead of all 5 concatenated).
+#
+# Reuses exp-4's own data (datasets/wound-staging-masks-exp-3/, the SAME
+# 8-channel .npy files, no new dataset generated) and the same verified
+# PIID 3-fold split.
+
+encoder: mit_b1
+weights: imagenet
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+tissue_channels: [granulation, slough, necrosis, tendon, bone]
+
+# Paths below resolve relative to experiment_extended/wp1_single_tissue_channel/exp4_concat/
+# (this file's grandparent), matching how scripts/train.py loads them --
+# same exp-3 data exp-4 itself uses, nothing new on disk.
+data_root: ../../../../datasets/wound-staging-masks-exp-3
+metadata_csv: ../../../../datasets/wound-staging-masks-exp-3/metadata.csv
+
+checkpoint_dir: checkpoints
+results_csv: results/results.csv

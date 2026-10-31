@@ -1,0 +1,54 @@
+# Work Package 1 (advisor extended experiments) -- exp-5 architecture
+# (residual fusion, "tissue_only" variant -- the one exp-5's own
+# diagnose_residual.py found actually depends on tissue content, unlike
+# "rgb_tissue"), repeated with exactly ONE tissue channel at a time.
+#
+# z_final = z_rgb + delta_z, same as exp-5 itself: z_rgb from the FROZEN,
+# trained RGB MiT-B1+CORN baseline (task_3's own checkpoint, per fold,
+# never retrained here), delta_z from a small residual head that sees
+# ONLY the one selected tissue channel. Final layer zero-initialized, same
+# "z_final == z_rgb at construction" guarantee exp-5's own
+# scripts/test_residual_model.py verifies.
+#
+# Reuses exp-5's own data (datasets/wound-staging-masks-exp-3/, the SAME
+# 8-channel .npy files) and the same verified PIID 3-fold split.
+
+encoder: mit_b1
+weights: imagenet   # only used to build the RGB branch's architecture; its
+                     # actual weights are overwritten by the loaded baseline checkpoint
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+max_epochs: 100
+eta_min_factor: 0.01
+patience: 10         # early stopping: epochs without val macro_f1 improvement
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+tissue_channels: [granulation, slough, necrosis, tendon, bone]
+
+# Paths below resolve relative to experiment_extended/wp1_single_tissue_channel/exp5_tissue_only/
+# (this file's grandparent), matching how scripts/train.py loads them --
+# same exp-3 data exp-5 itself uses, nothing new on disk.
+data_root: ../../../../datasets/wound-staging-masks-exp-3
+metadata_csv: ../../../../datasets/wound-staging-masks-exp-3/metadata.csv
+
+# Per-fold RGB baseline checkpoints -- task_3's own mit_b1__corn config,
+# trained unmodified (not a new/different initialization scheme), SAME
+# checkpoints exp-5 itself uses. {fold} is substituted with 0/1/2.
+rgb_checkpoint_template: ../../../../task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold{fold}.pt
+
+checkpoint_dir: checkpoints
+results_csv: results/results.csv

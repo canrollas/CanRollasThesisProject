@@ -1,0 +1,9 @@
+true_stage,stat,n_correct,n_wrong,mean_correct,mean_wrong,t_stat,p_value
+stage_3,wound_depth_mean,193,65,3.7473,3.5972,1.386,0.1687
+stage_3,wound_depth_std,193,65,0.3871,0.4147,-1.229,0.2213
+stage_3,wound_depth_range,193,65,1.6604,1.906,-2.377,0.0193
+stage_3,wound_minus_skin_mean,193,65,0.1312,-0.0856,2.17,0.0327
+stage_4,wound_depth_mean,235,37,3.3756,3.5559,-1.52,0.1352
+stage_4,wound_depth_std,235,37,0.5198,0.4301,3.582,0.0006
+stage_4,wound_depth_range,235,37,2.1627,1.8424,2.982,0.0042
+stage_4,wound_minus_skin_mean,235,37,-0.4487,-0.169,-2.65,0.0105

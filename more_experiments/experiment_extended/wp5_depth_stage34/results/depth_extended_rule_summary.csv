@@ -1,0 +1,2 @@
+tau_depth,val_pair_acc_with_extended_rule,test_pair_n,n_changed_by_rule,before_pair_accuracy,after_pair_accuracy,before_true4_pred3_errors,after_true4_pred3_errors,before_true3_pred4_errors,after_true3_pred4_errors,corrected_4to3_errors,damaged_previously_correct_3
+-1.5401,0.8056,530,0,0.8075,0.8075,37,37,65,65,0,0

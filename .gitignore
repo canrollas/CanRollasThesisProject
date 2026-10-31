@@ -67,3 +67,10 @@ venv/
 # Local explanation panels contain original clinical photographs.
 more_experiments/reports/figures/mit_b1_corn_test_explanations/
 more_experiments/reports/figures/mit_b1_corn_test_cases/
+
+# experiment_extended WP4: Stage 3/4 error review panels also contain
+# original clinical photographs (RGB column) -- same reasoning as the
+# explanation panels above. Kept locally, not source-controlled; the
+# case-level data (paths, stage, confidence, bone/tendon stats) is already
+# tracked in stage34_error_cases.csv.
+more_experiments/experiment_extended/error_panels/*/*.png
