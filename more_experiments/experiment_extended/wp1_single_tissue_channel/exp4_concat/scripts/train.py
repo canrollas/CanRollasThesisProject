@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Work Package 1 (advisor extended experiments): exp-4 architecture
-(late fusion, concat), repeated with exactly ONE tissue channel at a time.
+(late fusion, concat), repeated with all 5 tissue channels collapsed into
+ONE combined channel (per-pixel max) instead of concatenated separately.
 
-For each (--tissue-channel, fold) pair, trains the exact same architecture
-exp-4 itself uses (same lr/epochs/augment/single-phase protocol), with the
-tissue arm seeing only the one selected channel of the SAME exp-3 8-channel
-.npy files (no new dataset generated -- see scripts/dataset.py). Writes one
-shared results.csv across all 5 channels x 3 folds, config_id-differentiated
-(mit_b1__corn__wp1_exp4concat__tissue={channel}), same append/resume
-pattern as exp-4's own train.py (skips already-completed (config, fold)
-rows, safe to interrupt).
-
---tissue-channel defaults to "all" (sweeps granulation, slough, necrosis,
-tendon, bone in that order); pass one name to run just that channel.
+Per the advisor's note ("Tek kanal exp-4 ve exp-5 denenecek" -- 5 kanal
+yerine tum dokular tek kanalda verilsin), trains the exact same
+architecture exp-4 itself uses (same lr/epochs/augment/single-phase
+protocol), with the tissue arm seeing only the combined-max channel of the
+SAME exp-3 8-channel .npy files (no new dataset generated -- see
+scripts/dataset.py). Writes results.csv with one row per fold
+(config_id=mit_b1__corn__wp1_exp4concat__tissue=combined_max), same
+append/resume pattern as exp-4's own train.py (skips already-completed
+fold rows, safe to interrupt).
 """
 import argparse
 import json
@@ -38,21 +37,23 @@ from src.utils import (  # noqa: E402
 )
 
 sys.path.insert(0, str(THIS_DIR))
-from dataset import TISSUE_CHANNEL_INDEX, TwoStreamSingleChannelDataset  # noqa: E402
+from dataset import TwoStreamCombinedTissueDataset  # noqa: E402
 from engine import fit, run_epoch  # noqa: E402
 from model import build_model, count_params_m  # noqa: E402
 
+CONFIG_ID = "mit_b1__corn__wp1_exp4concat__tissue=combined_max"
 
-def make_loaders(data_root, fold, base_cfg, tissue_channel, batch_size, workers, smoke):
+
+def make_loaders(data_root, fold, base_cfg, batch_size, workers, smoke):
     aug = ImageAugmentation(**base_cfg["augment"])
     train_samples, val_samples, test_samples = fold["train"], fold["val"], fold["test"]
 
     if smoke:
         train_samples, val_samples, test_samples = train_samples[:8], val_samples[:4], test_samples[:4]
 
-    train_ds = TwoStreamSingleChannelDataset(train_samples, data_root, base_cfg["image_size"], tissue_channel, transform=aug)
-    val_ds = TwoStreamSingleChannelDataset(val_samples, data_root, base_cfg["image_size"], tissue_channel, transform=None)
-    test_ds = TwoStreamSingleChannelDataset(test_samples, data_root, base_cfg["image_size"], tissue_channel, transform=None)
+    train_ds = TwoStreamCombinedTissueDataset(train_samples, data_root, base_cfg["image_size"], transform=aug)
+    val_ds = TwoStreamCombinedTissueDataset(val_samples, data_root, base_cfg["image_size"], transform=None)
+    test_ds = TwoStreamCombinedTissueDataset(test_samples, data_root, base_cfg["image_size"], transform=None)
 
     common = dict(num_workers=workers, pin_memory=True, persistent_workers=workers > 0)
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, **common)
@@ -63,7 +64,6 @@ def make_loaders(data_root, fold, base_cfg, tissue_channel, batch_size, workers,
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--tissue-channel", default="all", choices=["all", *TISSUE_CHANNEL_INDEX.keys()])
     p.add_argument("--data-root", default=None)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--batch", type=int, default=None)
@@ -72,8 +72,15 @@ def parse_args():
     return p.parse_args()
 
 
-def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failures_csv, checkpoint_dir):
-    config_id = f"mit_b1__corn__wp1_exp4concat__tissue={tissue_channel}"
+def main():
+    args = parse_args()
+    base_cfg = load_yaml(EXP_DIR / "configs" / "base.yaml")
+    device = get_device()
+    results_csv = EXP_DIR / base_cfg["results_csv"]
+    failures_csv = results_csv.with_name("failures.csv")
+    checkpoint_dir = EXP_DIR / base_cfg["checkpoint_dir"]
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
     data_root = Path(args.data_root) if args.data_root else EXP_DIR / base_cfg["data_root"]
 
     set_seed(base_cfg["seed"])
@@ -86,23 +93,23 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
     batch_size = args.batch if args.batch is not None else base_cfg["batch_size"]
     num_classes = len(base_cfg["classes"])
 
-    print(f"device={device} config={config_id} folds={len(folds)} epochs={epochs}", flush=True)
+    print(f"device={device} config={CONFIG_ID} folds={len(folds)} epochs={epochs}", flush=True)
 
     for fold_idx, fold in enumerate(folds):
-        if (config_id, str(fold_idx)) in completed:
-            print(f"[{config_id} fold{fold_idx}] already completed, skipping", flush=True)
+        if (CONFIG_ID, str(fold_idx)) in completed:
+            print(f"[{CONFIG_ID} fold{fold_idx}] already completed, skipping", flush=True)
             continue
 
         model = None
         try:
             train_loader, val_loader, test_loader = make_loaders(
-                data_root, fold, base_cfg, tissue_channel, batch_size, args.workers, args.smoke
+                data_root, fold, base_cfg, batch_size, args.workers, args.smoke
             )
 
             model = build_model(base_cfg["encoder"], base_cfg["weights"], num_classes=num_classes)
             params_m = count_params_m(model)
-            checkpoint_path = checkpoint_dir / f"{config_id}_fold{fold_idx}.pt"
-            resume_path = checkpoint_dir / f"{config_id}_fold{fold_idx}.resume.pt"
+            checkpoint_path = checkpoint_dir / f"{CONFIG_ID}_fold{fold_idx}.pt"
+            resume_path = checkpoint_dir / f"{CONFIG_ID}_fold{fold_idx}.resume.pt"
 
             t0 = time.time()
             model, _ = fit(
@@ -110,7 +117,7 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
                 epochs=epochs, lr=base_cfg["lr"], weight_decay=base_cfg["weight_decay"],
                 eta_min_factor=base_cfg["eta_min_factor"],
                 head="corn", num_classes=num_classes,
-                log_prefix=f"[{config_id} fold{fold_idx}]",
+                log_prefix=f"[{CONFIG_ID} fold{fold_idx}]",
                 checkpoint_path=checkpoint_path, resume_path=resume_path,
                 freeze_epochs=0, finetune_lr=None,
             )
@@ -119,9 +126,9 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
             provenance_path = checkpoint_path.with_suffix(".provenance.json")
             with open(provenance_path, "w") as f:
                 json.dump({
-                    "config_id": config_id, "fold": fold_idx, "tissue_channel": tissue_channel,
+                    "config_id": CONFIG_ID, "fold": fold_idx, "tissue_channel": "combined_max",
                     "trained_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                    "architecture": "exp-4 late fusion (concat), single tissue channel",
+                    "architecture": "exp-4 late fusion (concat), 5 tissue channels collapsed via per-pixel max",
                     "image_size": base_cfg["image_size"], "batch_size": batch_size, "epochs": epochs,
                     "lr": base_cfg["lr"], "weight_decay": base_cfg["weight_decay"], "seed": base_cfg["seed"],
                     "data_root": str(data_root), "params_m": round(params_m, 3),
@@ -130,12 +137,8 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
             criterion = build_loss("corn", num_classes)
             test_stats = run_epoch(model, test_loader, criterion, device, "corn", num_classes, optimizer=None)
 
-            # tissue_channel is deliberately NOT a separate column -- task_3/src/utils.py's
-            # append_result/write_summary use a fixed RESULT_FIELDS schema shared by every
-            # experiment in this repo; config_id already encodes it unambiguously
-            # (".../tissue={channel}"), so this stays loadable by those shared helpers as-is.
             row = {
-                "config_id": config_id,
+                "config_id": CONFIG_ID,
                 "encoder": base_cfg["encoder"], "head": "corn", "weights": base_cfg["weights"],
                 "fold": fold_idx, "params_m": round(params_m, 3),
                 "accuracy": round(test_stats["accuracy"], 4), "macro_f1": round(test_stats["macro_f1"], 4),
@@ -144,14 +147,14 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
             }
             append_result(results_csv, row)
             write_summary(results_csv, results_csv.with_name("summary.csv"))
-            print(f"[{config_id} fold{fold_idx}] DONE test_acc={row['accuracy']:.4f} "
+            print(f"[{CONFIG_ID} fold{fold_idx}] DONE test_acc={row['accuracy']:.4f} "
                   f"test_f1={row['macro_f1']:.4f} test_qwk={row['qwk']:.4f}", flush=True)
 
         except Exception as exc:  # noqa: BLE001 - keep going so a bad fold doesn't lose the others
             traceback.print_exc()
-            print(f"[{config_id} fold{fold_idx}] FAILED: {exc}", flush=True)
+            print(f"[{CONFIG_ID} fold{fold_idx}] FAILED: {exc}", flush=True)
             append_failure(failures_csv, {
-                "config_id": config_id,
+                "config_id": CONFIG_ID,
                 "encoder": base_cfg["encoder"], "head": "corn", "weights": base_cfg["weights"],
                 "fold": fold_idx, "error": f"{type(exc).__name__}: {exc}",
                 "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -160,20 +163,6 @@ def run_one_channel(tissue_channel, base_cfg, args, device, results_csv, failure
             del model
             if device.type == "cuda":
                 torch.cuda.empty_cache()
-
-
-def main():
-    args = parse_args()
-    base_cfg = load_yaml(EXP_DIR / "configs" / "base.yaml")
-    device = get_device()
-    results_csv = EXP_DIR / base_cfg["results_csv"]
-    failures_csv = results_csv.with_name("failures.csv")
-    checkpoint_dir = EXP_DIR / base_cfg["checkpoint_dir"]
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
-    channels = list(TISSUE_CHANNEL_INDEX.keys()) if args.tissue_channel == "all" else [args.tissue_channel]
-    for channel in channels:
-        run_one_channel(channel, base_cfg, args, device, results_csv, failures_csv, checkpoint_dir)
 
 
 if __name__ == "__main__":

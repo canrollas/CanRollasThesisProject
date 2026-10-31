@@ -1,11 +1,14 @@
 # Work Package 1 (advisor extended experiments) -- exp-4 architecture
-# (late fusion, concat), repeated with exactly ONE tissue channel at a
-# time instead of all five, per the advisor's request.
+# (late fusion, concat), repeated with all 5 tissue channels collapsed
+# into ONE combined channel (per-pixel max) instead of concatenated
+# separately. Per the advisor's own note: "Tek kanal exp-4 ve exp-5
+# denenecek" -- 5 kanal yerine tum dokular tek kanalda verilsin.
 #
 # Same backbone/head/protocol/data as exp-4 itself (single-phase training,
 # freeze_epochs=0, same lr/epochs/augment/split) -- the ONLY change from
-# exp-4's own config is the tissue arm's input (1 channel, selected by
-# --tissue-channel, instead of all 5 concatenated).
+# exp-4's own config is the tissue arm's input (1 combined channel,
+# max(granulation,slough,necrosis,tendon,bone) per pixel, instead of all
+# 5 concatenated separately; see scripts/dataset.py).
 #
 # Reuses exp-4's own data (datasets/wound-staging-masks-exp-3/, the SAME
 # 8-channel .npy files, no new dataset generated) and the same verified

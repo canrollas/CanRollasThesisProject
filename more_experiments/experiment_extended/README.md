@@ -31,10 +31,23 @@ Only WP1 needs GPU training; WP2–WP5 are pure inference/analysis over already
   depth maps (Depth Anything V2 Small), reused as-is by WP5.
 - Tissue channel order throughout: `[granulation, slough, necrosis, tendon, bone]`.
 
-## Work Package 1 — single-tissue-channel Exp-4 / Exp-5
+## Work Package 1 — combined single-channel Exp-4 / Exp-5
 
-**Status: code complete, zero training runs executed yet.** This is the only
-GPU-bound piece, so it ships as two Colab notebooks:
+**Corrected scope (see "Known issues" below):** the advisor's actual note is
+*"Tek kanal exp-4 ve exp-5 denenecek"* — 5 kanal yerine tüm dokular tek kanalda
+verilsin (all five tissue probability maps collapsed into **one** channel, instead
+of concatenating them separately), **not** five separate per-tissue-type runs. The
+combined channel is a **per-pixel maximum** over the 5 tissue probabilities
+(`max(granulation, slough, necrosis, tendon, bone)` at every pixel) —
+tissue-**type** identity is discarded, only "how much evidence of ANY non-healthy
+tissue type is here" survives. This directly tests whether exp-4/exp-5's 5-channel
+fusion needs per-type distinction or whether a single collapsed magnitude channel
+is enough.
+
+**Status: code complete and locally smoke-tested (CPU/MPS, 1 fold, 2 epochs, tiny
+subset — both architectures pass end to end, including exp-5's RGB
+-baseline-reproduction check), zero real training runs executed yet.** This is the
+only GPU-bound piece, so it ships as two Colab notebooks:
 
 - `wp1_single_tissue_channel/exp4_concat/colab_train.ipynb`
 - `wp1_single_tissue_channel/exp5_tissue_only/colab_train.ipynb`
@@ -49,32 +62,38 @@ the frozen RGB baseline checkpoints it depends on.
 To run: open either notebook in Google Colab (GPU runtime), make sure
 `wound-staging-masks-exp-3.zip` (and, for the exp5 notebook, optionally
 `task_3_outputs/checkpoints/*.pt`) exist under `drive/MyDrive/thesis/`, and run
-top to bottom. Each sweeps all 5 tissue channels × 3 folds
-(`--tissue-channel all`), writing one shared `results/results.csv` per
-architecture.
+top to bottom. Each trains 3 folds (one combined-tissue-channel config), writing
+`results/results.csv` with one row per fold.
 
 Equivalent local command (if you have a CUDA/MPS GPU locally instead of Colab):
 
 ```bash
 cd more_experiments/experiment_extended/wp1_single_tissue_channel/exp4_concat/scripts
-python train.py --tissue-channel all --workers 4
-# or one channel at a time:
-python train.py --tissue-channel bone --workers 4
+python train.py --workers 4
 
 cd ../../exp5_tissue_only/scripts
-python train.py --tissue-channel all --workers 4
+python train.py --workers 4
 ```
 
-**Scope decision:** only exp-4's `concat` fusion mode is swept here, not `gated`.
-The brief allows the gated variant to be "handled only if it is already
+**Scope decision:** only exp-4's `concat` fusion mode is covered here, not
+`gated`. The brief allows the gated variant to be "handled only if it is already
 considered part of Experiment 4 in the repository" — `more_experiments/results/comparison.csv`
 lists `E4-concat` and `E4-gated` as two separate recorded variants, so this WP
 treats `concat` as the primary Exp-4 architecture (consistent with exp-4's own
 notebook, which also only runs `gated` as a conditional follow-up). If the
-single-channel `concat` results justify it, the same `--tissue-channel` pattern
-can be added to a `gated` variant later — not done here to keep this WP to the
-"minimal modification" instruction and a bounded GPU budget (15 runs × 2
-architectures is already 30 fold-runs).
+combined-channel `concat` result justifies it, the same dataset-level channel
+merge can be added to a `gated` variant later — not done here to keep this WP to
+the "minimal modification" instruction.
+
+**Known issue (corrected mid-implementation, flagged for the record):** an
+earlier version of this WP misread "tek kanal" ("single channel") as *five
+separate experiments, each isolating one tissue type alone* (granulation-only,
+slough-only, ...) rather than *all five collapsed into one combined channel*. That
+version's `--tissue-channel {name}` sweep and per-type Colab notebooks were
+discarded entirely and replaced with the combined-max implementation described
+above, once the advisor's actual note was quoted directly. No training had been
+run under the old (incorrect) interpretation, so nothing was lost — only
+unexecuted code and notebooks were replaced.
 
 ## Work Package 2 — tissue fusion restricted to Stages 2–4
 

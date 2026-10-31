@@ -4,19 +4,28 @@ Status overview and exact commands are in `README.md`; full per-metric numbers a
 in `results.csv`. This file answers the five advisor questions directly, flags
 what's exploratory vs. confirmatory, and lists limitations.
 
-## 1. Does any individual tissue channel carry signal the 5-channel fusion hides?
+## 1. Does a single combined tissue channel do as well as 5 separate ones?
+
+(Advisor's own framing: *"Tek kanal exp-4 ve exp-5 denenecek"* — 5 kanal yerine tum
+dokular tek kanalda verilsin. This is a test of whether exp-4/exp-5's 5-channel
+tissue fusion needs per-type distinction, not a per-tissue-type ablation.)
 
 **Not yet answered — pending Colab training (WP1).** The code for both
-architectures (Exp-4 concat and Exp-5 `tissue_only` residual, swept over
-granulation/slough/necrosis/tendon/bone × 3 folds) is complete and was validated to
-build, load, and run via `--smoke` mode, but no GPU training has been executed in
-this environment. Two Colab notebooks
+architectures (Exp-4 `concat` and Exp-5 `tissue_only` residual) collapses all 5
+tissue probability maps into ONE channel via a per-pixel maximum
+(`max(granulation, slough, necrosis, tendon, bone)` at every pixel) before fusing
+with RGB, 3 folds each. It is complete and was validated locally (CPU/MPS,
+`--smoke` mode: 1 fold, 2 epochs, tiny subset) — both architectures build, load, and
+run end to end, including Exp-5's RGB-baseline-reproduction check (all 3 checks
+PASS) — but no GPU training has been executed for real. Two Colab notebooks
 (`wp1_single_tissue_channel/{exp4_concat,exp5_tissue_only}/colab_train.ipynb`) are
 ready to run; once they finish, `results.csv`'s `wp1` rows should be filled in with
-real per-channel accuracy/macro-F1/MAE/QWK and compared against the recorded
+real per-fold accuracy/macro-F1/MAE/QWK and compared against the recorded
 references already in that file (RGB baseline 0.8168/0.8182/0.9138; Exp-4 concat
-5-channel 0.7983/0.8003/0.9109; Exp-5 `tissue_only` 5-channel, fold-1-only,
-0.8370/0.8376/0.9323).
+5-channel-separate 0.7983/0.8003/0.9109; Exp-5 `tissue_only` 5-channel-separate,
+fold-1-only, 0.8370/0.8376/0.9323). If the combined channel matches or beats the
+5-channel number, per-type identity isn't adding much beyond "where is something
+abnormal"; if it's clearly worse, the per-type distinction is carrying real signal.
 
 ## 2. Does RGB+tissue fusion help Stages 2–4 if Stage 1 is excluded from fusion?
 
@@ -142,7 +151,14 @@ group-level means do differ).
   `wp3_bone_tendon_rule/scripts/fit_and_evaluate_rule.py` to correct (swap the two
   key names on lines 210–211).
 - WP1 is the only unfinished piece — everything in this summary that depends on
-  single-channel results is explicitly marked pending above, not fabricated.
+  combined-channel results is explicitly marked pending above, not fabricated.
+- **WP1 scope was corrected mid-implementation:** an earlier version read "tek
+  kanal" (single channel) as five separate per-tissue-type experiments
+  (granulation-only, slough-only, ...) rather than the advisor's actual intent —
+  all five tissue maps collapsed into one combined channel. That version's code
+  and Colab notebooks were discarded before any training ran and replaced with the
+  combined-max implementation described in §1 above; nothing was lost since no
+  GPU training had happened under the incorrect interpretation.
 - §4's illustrative single-example observations are clearly separated from the
   measured, full-sample patterns — treat the former as hypotheses for a human
   reviewer to check against the full panel set, not as findings.

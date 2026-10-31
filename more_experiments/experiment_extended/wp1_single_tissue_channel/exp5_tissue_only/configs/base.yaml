@@ -1,14 +1,18 @@
 # Work Package 1 (advisor extended experiments) -- exp-5 architecture
 # (residual fusion, "tissue_only" variant -- the one exp-5's own
 # diagnose_residual.py found actually depends on tissue content, unlike
-# "rgb_tissue"), repeated with exactly ONE tissue channel at a time.
+# "rgb_tissue"), repeated with all 5 tissue channels collapsed into ONE
+# combined channel (per-pixel max) instead of concatenated separately.
+# Per the advisor's own note: "Tek kanal exp-4 ve exp-5 denenecek" -- 5
+# kanal yerine tum dokular tek kanalda verilsin.
 #
 # z_final = z_rgb + delta_z, same as exp-5 itself: z_rgb from the FROZEN,
 # trained RGB MiT-B1+CORN baseline (task_3's own checkpoint, per fold,
 # never retrained here), delta_z from a small residual head that sees
-# ONLY the one selected tissue channel. Final layer zero-initialized, same
-# "z_final == z_rgb at construction" guarantee exp-5's own
-# scripts/test_residual_model.py verifies.
+# ONLY the combined tissue channel (max(granulation,slough,necrosis,
+# tendon,bone) per pixel; see scripts/dataset.py). Final layer zero
+# -initialized, same "z_final == z_rgb at construction" guarantee exp-5's
+# own scripts/test_residual_model.py verifies.
 #
 # Reuses exp-5's own data (datasets/wound-staging-masks-exp-3/, the SAME
 # 8-channel .npy files) and the same verified PIID 3-fold split.

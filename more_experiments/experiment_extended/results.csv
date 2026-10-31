@@ -8,14 +8,14 @@ reference,exp4_concat_5channel,mit_b1__corn__exp4_latefusion_concat,all_stages,3
 reference,exp5_tissue_only_5channel,mit_b1__corn__tissue_only_residual,all_stages,fold1 only (3-fold sweep incomplete),accuracy,0.8370,done,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
 reference,exp5_tissue_only_5channel,mit_b1__corn__tissue_only_residual,all_stages,fold1 only (3-fold sweep incomplete),macro_f1,0.8376,done,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
 reference,exp5_tissue_only_5channel,mit_b1__corn__tissue_only_residual,all_stages,fold1 only (3-fold sweep incomplete),qwk,0.9323,done,more_experiments/exp/exp5_residual_fusion/results/exp5_results.csv
-wp1,exp4_concat_single_channel,granulation|slough|necrosis|tendon|bone x 3 folds,all_stages,0 of 15 runs,n/a,,pending,Code complete (train.py/model.py/dataset.py/engine.py), not yet trained. Run wp1_single_tissue_channel/exp4_concat/colab_train.ipynb on Colab GPU; results land in results/results.csv there.
-wp1,exp5_tissue_only_single_channel,granulation|slough|necrosis|tendon|bone x 3 folds,all_stages,0 of 15 runs,n/a,,pending,Code complete (train.py/model.py/dataset.py/engine.py), not yet trained. Run wp1_single_tissue_channel/exp5_tissue_only/colab_train.ipynb on Colab GPU; requires task_3 RGB baseline checkpoints (present locally, 2.5G).
+wp1,exp4_concat_combined_channel,mit_b1__corn__wp1_exp4concat__tissue=combined_max,all_stages,0 of 3 folds,n/a,,pending,Code complete and locally smoke-tested (CPU/MPS); not yet trained for real. Run wp1_single_tissue_channel/exp4_concat/colab_train.ipynb on Colab GPU; results land in results/results.csv there.
+wp1,exp5_tissue_only_combined_channel,mit_b1__corn__wp1_exp5tissueonly__tissue=combined_max,all_stages,0 of 3 folds,n/a,,pending,"Code complete and locally smoke-tested (CPU/MPS, incl. RGB-baseline-reproduction check); not yet trained for real. Run wp1_single_tissue_channel/exp5_tissue_only/colab_train.ipynb on Colab GPU; requires task_3 RGB baseline checkpoints (present locally, 2.5G)."
 wp2,baseline,mit_b1__corn (frozen),all_stages,1091,accuracy,0.8167,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,baseline,mit_b1__corn (frozen),all_stages,1091,macro_f1,0.8185,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,baseline,mit_b1__corn (frozen),all_stages,1091,mae,0.1897,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,baseline,mit_b1__corn (frozen),all_stages,1091,qwk,0.9141,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,baseline,mit_b1__corn (frozen),stages_2_4,861,accuracy,0.8002,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
-wp2,baseline,mit_b1__corn (frozen),stages_2_4,861,macro_f1,0.6055,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv (restricted-scope macro_f1 artifact, see wp2 README)
+wp2,baseline,mit_b1__corn (frozen),stages_2_4,861,macro_f1,0.6055,done,"wp2_stage1_excluded_fusion/results/cascade_metrics.csv; restricted-scope macro_f1 artifact, see wp2 README"
 wp2,baseline,mit_b1__corn (frozen),stages_2_4,861,mae,0.2044,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,baseline,mit_b1__corn (frozen),stages_2_4,861,qwk,0.8528,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),all_stages,1091,accuracy,0.7993,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
@@ -23,7 +23,7 @@ wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),all_stages
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),all_stages,1091,mae,0.2044,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),all_stages,1091,qwk,0.9113,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),stages_2_4,861,accuracy,0.7724,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
-wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),stages_2_4,861,macro_f1,0.5901,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv (restricted-scope macro_f1 artifact, see wp2 README)
+wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),stages_2_4,861,macro_f1,0.5901,done,"wp2_stage1_excluded_fusion/results/cascade_metrics.csv; restricted-scope macro_f1 artifact, see wp2 README"
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),stages_2_4,861,mae,0.2323,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,fusion_unrestricted,mit_b1__corn__exp4_latefusion_concat (frozen),stages_2_4,861,qwk,0.8371,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),all_stages,1091,accuracy,0.7993,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
@@ -31,10 +31,10 @@ wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),all_sta
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),all_stages,1091,mae,0.2044,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),all_stages,1091,qwk,0.9120,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),stages_2_4,861,accuracy,0.7666,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
-wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),stages_2_4,861,macro_f1,0.5876,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv (restricted-scope macro_f1 artifact, see wp2 README)
+wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),stages_2_4,861,macro_f1,0.5876,done,"wp2_stage1_excluded_fusion/results/cascade_metrics.csv; restricted-scope macro_f1 artifact, see wp2 README"
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),stages_2_4,861,mae,0.2381,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
 wp2,cascade_stage1_excluded,baseline + exp4_concat cascade (both frozen),stages_2_4,861,qwk,0.8351,done,wp2_stage1_excluded_fusion/results/cascade_metrics.csv
-wp2,stage1_decision_stability,cascade vs baseline / cascade vs fusion,all_stages,1091,stage1_predictions_unchanged,223/223,done,"verified directly on cascade_per_sample.csv; non-stage1 predictions match fusion exactly 868/868"
+wp2,stage1_decision_stability,cascade vs baseline / cascade vs fusion,all_stages,1091,stage1_predictions_unchanged,223/223,done,verified directly on cascade_per_sample.csv; non-stage1 predictions match fusion exactly 868/868
 wp3,bone_tendon_rule,tau=1.0 (fit on 110 validation contested cases),stage3_vs_4_contested,530,pair_accuracy_before,0.8075,done,wp3_bone_tendon_rule/results/rule_summary.csv
 wp3,bone_tendon_rule,tau=1.0 (fit on 110 validation contested cases),stage3_vs_4_contested,530,pair_accuracy_after,0.8075,done,"negative result: n_changed_by_rule=0, rule never fires at this threshold"
 wp3,bone_tendon_rule,tau=1.0 (fit on 110 validation contested cases),stage3_vs_4_contested,530,true3_pred4_errors_before,65,done,"corrected value -- source CSV's column label is swapped, see summary.md Known Issues"
@@ -45,9 +45,9 @@ wp4,stage34_error_audit,exploratory case review,stage3_vs_4_contested,530,correc
 wp4,stage34_error_audit,exploratory case review,stage3_vs_4_contested,530,correct_stage4,235,done,experiment_extended/stage34_error_cases.csv + error_panels/correct_4
 wp4,stage34_error_audit,exploratory case review,stage3_vs_4_contested,530,error_3to4,65,done,experiment_extended/stage34_error_cases.csv + error_panels/error_3to4
 wp4,stage34_error_audit,exploratory case review,stage3_vs_4_contested,530,error_4to3,37,done,experiment_extended/stage34_error_cases.csv + error_panels/error_4to3
-wp5,depth_signal,wound_depth_range (Depth Anything V2 Small, relative cue),stage3_vs_4_contested,530,t_test_p_value,0.0193,done,wp5_depth_stage34/results/depth_signal_summary.csv (correct vs wrong stage_3 predictions)
-wp5,depth_signal,wound_minus_skin_mean,stage3_vs_4_contested,530,t_test_p_value,0.0327,done,wp5_depth_stage34/results/depth_signal_summary.csv (correct vs wrong stage_3 predictions)
-wp5,depth_signal,wound_depth_std,stage3_vs_4_contested,530,t_test_p_value,0.0006,done,wp5_depth_stage34/results/depth_signal_summary.csv (correct vs wrong stage_4 predictions)
-wp5,depth_signal,wound_depth_range,stage3_vs_4_contested,530,t_test_p_value,0.0042,done,wp5_depth_stage34/results/depth_signal_summary.csv (correct vs wrong stage_4 predictions)
+wp5,depth_signal,"wound_depth_range (Depth Anything V2 Small, relative cue)",stage3_vs_4_contested,530,t_test_p_value,0.0193,done,wp5_depth_stage34/results/depth_signal_summary.csv; correct vs wrong stage_3 predictions
+wp5,depth_signal,wound_minus_skin_mean,stage3_vs_4_contested,530,t_test_p_value,0.0327,done,wp5_depth_stage34/results/depth_signal_summary.csv; correct vs wrong stage_3 predictions
+wp5,depth_signal,wound_depth_std,stage3_vs_4_contested,530,t_test_p_value,0.0006,done,wp5_depth_stage34/results/depth_signal_summary.csv; correct vs wrong stage_4 predictions
+wp5,depth_signal,wound_depth_range,stage3_vs_4_contested,530,t_test_p_value,0.0042,done,wp5_depth_stage34/results/depth_signal_summary.csv; correct vs wrong stage_4 predictions
 wp5,depth_extended_rule,tau_depth=-1.54 (fit on same 110 validation contested cases as WP3),stage3_vs_4_contested,530,pair_accuracy_before,0.8075,done,wp5_depth_stage34/results/depth_extended_rule_summary.csv
 wp5,depth_extended_rule,tau_depth=-1.54 (fit on same 110 validation contested cases as WP3),stage3_vs_4_contested,530,pair_accuracy_after,0.8075,done,"negative result: n_changed_by_rule=0, depth term never fires beyond WP3's tissue-only rule"

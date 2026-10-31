@@ -1,19 +1,22 @@
-"""Work Package 1 (advisor extended experiments): single-tissue-channel
+"""Work Package 1 (advisor extended experiments): combined-tissue-channel
 two-stream dataset for the exp-4 (late fusion, concat) architecture.
+
+Per the advisor's own note ("Tek kanal exp-4 ve exp-5 denenecek" -- single
+channel exp-4/exp-5 will be tried, i.e. 5 kanal yerine tum dokular tek
+kanalda verilsin / all five tissues given in a single channel instead of
+5): unlike exp-4's own dataset.py (which concatenates all 5 tissue
+probability channels), this collapses all 5 into exactly ONE channel via a
+per-pixel maximum (max(granulation, slough, necrosis, tendon, bone) at
+every pixel) before handing it to the exact same late-fusion architecture.
+Tissue-type identity is deliberately discarded; only "how much evidence of
+ANY non-healthy tissue type is here" survives, so this directly tests
+whether exp-4's 5-channel fusion needs per-type distinction or whether a
+single combined magnitude is enough.
 
 Reuses the EXACT SAME .npy files exp-3/exp-4/exp-5 already generated
 (datasets/wound-staging-masks-exp-3/, 8-channel: R,G,B,granulation,slough,
 necrosis,tendon,bone -- see that dataset's provenance.json) -- no new
-dataset generation. Unlike exp-4's own dataset.py (which returns all 5
-tissue channels), this slices out exactly ONE of the 5 channels, selected
-by name at construction time, so --tissue-channel sweeps granulation/
-slough/necrosis/tendon/bone independently without duplicating any data on
-disk.
-
-Channel selection is passed into the Dataset object's __init__ (plain data
-on the instance, not a dynamically-imported sibling module), so this stays
-safe under DataLoader multiprocessing with --workers > 0, same as every
-other dataset.py in this repo.
+dataset generation, the channel merge happens on load.
 """
 from pathlib import Path
 
@@ -25,13 +28,14 @@ from torch.utils.data import Dataset
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
-# Absolute channel index within the 8-channel array (0,1,2 = R,G,B).
-TISSUE_CHANNEL_INDEX = {"granulation": 3, "slough": 4, "necrosis": 5, "tendon": 6, "bone": 7}
+# Tissue channels occupy indices 3-7 of the 8-channel array (0,1,2 = R,G,B);
+# combined into one channel via a per-pixel max (see module docstring).
+TISSUE_CHANNEL_SLICE = slice(3, 8)
 
 
-def _resize_rgb_and_one_channel(arr, size, channel_idx):
+def _resize_rgb_and_combined_tissue(arr, size):
     rgb = arr[:, :, :3]
-    tissue = arr[:, :, channel_idx]
+    tissue = arr[:, :, TISSUE_CHANNEL_SLICE].max(axis=-1)  # (H, W), per-pixel max over the 5 tissue types
     if arr.shape[0] == size and arr.shape[1] == size:
         return rgb, tissue
     rgb_r = np.array(Image.fromarray(rgb).resize((size, size), Image.BILINEAR))
@@ -39,14 +43,11 @@ def _resize_rgb_and_one_channel(arr, size, channel_idx):
     return rgb_r, tissue_r
 
 
-class TwoStreamSingleChannelDataset(Dataset):
-    def __init__(self, samples, data_root, image_size, tissue_channel, transform=None):
-        if tissue_channel not in TISSUE_CHANNEL_INDEX:
-            raise ValueError(f"tissue_channel must be one of {list(TISSUE_CHANNEL_INDEX)}, got {tissue_channel!r}")
+class TwoStreamCombinedTissueDataset(Dataset):
+    def __init__(self, samples, data_root, image_size, transform=None):
         self.samples = samples
         self.data_root = Path(data_root)
         self.image_size = image_size
-        self.channel_idx = TISSUE_CHANNEL_INDEX[tissue_channel]
         self.transform = transform
 
     def __len__(self):
@@ -55,7 +56,7 @@ class TwoStreamSingleChannelDataset(Dataset):
     def __getitem__(self, idx):
         rel_path, label = self.samples[idx]
         arr = np.load(self.data_root / rel_path)  # (H, W, 8) uint8
-        rgb, tissue = _resize_rgb_and_one_channel(arr, self.image_size, self.channel_idx)
+        rgb, tissue = _resize_rgb_and_combined_tissue(arr, self.image_size)
 
         if self.transform is not None:
             combined = np.concatenate([rgb, tissue[:, :, None]], axis=-1)  # flip/rotate jointly, before the split
