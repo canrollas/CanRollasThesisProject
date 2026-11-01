@@ -1,0 +1,38 @@
+{
+  "fold": 2,
+  "n_val": 72,
+  "source_checkpoint": "task_3/results/task_3_outputs/checkpoints/mit_b1__corn_fold2.pt",
+  "class_order": [
+    "stage_1",
+    "stage_2",
+    "stage_3",
+    "stage_4"
+  ],
+  "confusion_counts": [
+    [
+      16,
+      2,
+      0,
+      0
+    ],
+    [
+      1,
+      18,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      12,
+      5
+    ],
+    [
+      0,
+      0,
+      3,
+      14
+    ]
+  ],
+  "accuracy_on_val": 0.8333333333333334
+}

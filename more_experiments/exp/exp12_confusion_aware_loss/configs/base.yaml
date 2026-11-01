@@ -1,0 +1,39 @@
+# Experiment 12 -- Confusion-Aware CORN Loss (Chapter 8).
+#
+# Reuses Chapter 7's exact mit_b1 + CORN training configuration, data root,
+# image size, augmentation protocol, and 3-fold split (seed=42) UNCHANGED --
+# see task_3/configs/base.yaml, which these values are copied from verbatim.
+# No architecture, dataset, or encoder change anywhere in this experiment --
+# only the training loss (scripts/losses.py) differs between variants.
+
+encoder: mit_b1
+head: corn
+weights: imagenet
+
+image_size: 224
+batch_size: 16
+
+lr: 0.0001
+weight_decay: 0.00001
+epochs: 100
+eta_min_factor: 0.01
+
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+
+classes: [stage_1, stage_2, stage_3, stage_4]
+
+# Resolved relative to exp/exp12_confusion_aware_loss/ (this file's
+# grandparent) -- same RGB images task_3's own baseline trains on, no
+# local copy.
+data_root: ../../../datasets/wound-stage-classification
+
+checkpoint_dir: checkpoints
+results_csv: results/results.csv
