@@ -1,0 +1,20 @@
+# Genuine Stage 2/3/4 retraining; retain the Task 3 / Exp 4 protocol.
+encoder: mit_b1
+weights: imagenet
+head: corn
+classes: [stage_2, stage_3, stage_4]
+image_size: 224
+batch_size: 16
+epochs: 100
+lr: 0.0001
+weight_decay: 0.00001
+eta_min_factor: 0.01
+augment:
+  hflip_p: 0.5
+  vflip_p: 0.5
+  rotate_p: 0.7
+  rotate_angles: [90, 180, 270]
+num_folds: 3
+val_fraction: 0.1
+seed: 42
+data_root: ../../../datasets/wound-staging-masks-exp-3
